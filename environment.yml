@@ -1,0 +1,8 @@
+# to install, run: 
+# conda env create -f environment.yml
+name: stemestimator
+channels:
+  - "conda-forge"
+  - "davidcaron"
+dependencies:
+  - pclpy
