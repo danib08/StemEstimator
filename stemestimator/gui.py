@@ -20,7 +20,8 @@ class App(tk.Tk):
         self.title(title)
         self.geometry(f'{size[0]}x{size[1]}')
         self.minsize(size[0], size[1])
-        self.resizable(False, False)    
+        self.resizable(False, False) 
+        self.iconbitmap('./assets/icon.ico')   
 
         # the container will stack frames on top of each other
         container = tk.Frame(self)
@@ -71,28 +72,43 @@ class StartPage(tk.Frame):
         """
         file_path = filedialog.askopenfilename()
         if file_path:
+            self.file_entry.state(['!disabled'])
+            self.file_entry.delete(0, 'end')
             self.file_entry.insert(0, file_path)
+            self.file_entry.state(['disabled'])
 
     def make_widgets(self):
         """Creates the widgets for the frame.
         """
-        header_font = ("Helvetica", 18, "bold", "italic")
-        self.header = ttk.Label(self, text="Estimador de Tallos", font=header_font)
-        self.file_label = ttk.Label(self, text="Subir un archivo de nube de puntos:")
-        self.open_button = ttk.Button(self, text="Buscar...", command=self.browse_file)
-        self.file_entry = ttk.Entry(self)
+        self.header_font = ("Helvetica", 18, "bold")
+        self.style = ttk.Style()
+        self.style.configure('s.TButton', font=('Helvetica', 10, "bold"), foreground="green")
+        self.style.configure('b.TButton', font=('Helvetica', 16, "bold"), foreground="green")
+
+        self.canvas = tk.Canvas(self, bg="red", width=800, height=600)
+        self.bg_image = tk.PhotoImage(file='./assets/bg_image.png')
+        self.file_button = ttk.Button(self, text="Buscar...", style='s.TButton', 
+                                      command=self.browse_file )
+        self.file_entry = ttk.Entry(self, state="disabled", width=40)
+        self.start_button = ttk.Button(self, text="Iniciar", style='b.TButton')
         
     def place_widgets(self):
-        """Places the widgets in the frame.
+        """Places the canvas and the widgets.
         """
-        self.header.pack(side="top", fill="x", pady=10)
-        self.file_label.pack(side="top", pady=10)
-        self.open_button.pack(side="top", pady=10)
-        self.file_entry.pack(side="top", pady=10)
+        self.canvas.pack()
+        self.canvas.create_image(0, 0, image=self.bg_image, anchor="nw")
+        self.canvas.create_rectangle(200, 100, 600, 400, fill="#32612d", 
+                                outline="", stipple='gray75') 
+        self.canvas.create_text(400, 130, text="Estimador de Tallos", 
+                                font=self.header_font, fill="white")
+        self.canvas.create_text(380, 200, text="Subir un archivo de nube de puntos", 
+                                font=("Helvetica", 16), fill="white")
+        self.canvas.create_window(340, 230, window=self.file_entry)
+        self.canvas.create_window(535, 230, window=self.file_button)
+        self.canvas.create_window(400, 300, window=self.start_button)
 
 class SplashPage(tk.Frame):
     """A splash page for the application.
-
     :param parent: The parent widget.
     :type parent: tk.Tk
     :param controller: The main application controller.
