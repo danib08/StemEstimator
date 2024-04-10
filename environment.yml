@@ -6,3 +6,6 @@ channels:
   - "davidcaron"
 dependencies:
   - pclpy
+  - pandas
+  - matplotlib
+  - ipykernel
