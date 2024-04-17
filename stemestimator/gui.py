@@ -16,27 +16,27 @@ class App(tk.Tk):
         """
         super().__init__()
 
-        # main setup    
+        # Main setup    
         self.title(title)
         self.geometry(f'{size[0]}x{size[1]}')
         self.minsize(size[0], size[1])
         self.resizable(False, False) 
         self.iconbitmap('./assets/icon.ico')   
 
-        # the container will stack frames on top of each other
+        # The container will stack frames on top of each other
         container = tk.Frame(self)
         container.pack(side="top", fill="both", expand=True)
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
 
-        self.frames = {} # frame dictionary
-        for F in (StartPage, SplashPage):
+        self.frames = {} # Frame dictionary
+        for F in (StartPage, SplashPage): #TODO: add additional pages
             page_name = F.__name__
             frame = F(parent=container, controller=self)
-            # add each frame to dictionary
+            # Add each frame to dictionary
             self.frames[page_name] = frame
 
-            # position frames in the same location
+            # Position frames in the same location
             frame.grid(row=0, column=0, sticky="nsew")
 
         self.show_frame("StartPage")
@@ -72,11 +72,43 @@ class StartPage(tk.Frame):
         """
         file_path = filedialog.askopenfilename()
         if file_path:
+            # Clear and set entry
             self.file_entry.state(['!disabled'])
             self.file_entry.delete(0, 'end')
             self.file_entry.insert(0, file_path)
             self.file_entry.state(['disabled'])
 
+            if self.file_checker(file_path):
+                self.start_button.state(['!disabled'])
+            else:
+                self.start_button.state(['disabled'])
+
+    def file_checker(self, file_path):
+        """Checks if file is of .xyz type.
+
+        :param file_path: The path to the input file.
+        :type file_path: str
+        """
+        if not file_path.endswith('.xyz'):
+            return False
+        try:
+            # XYZ format check (minimum 3 numeric columns)
+            with open(file_path, 'r') as file:
+                for _ in range(100):
+                    line = file.readline().strip()
+                    columns = line.split()
+                    if len(columns) >= 3:
+                        try:
+                            for value in columns:
+                                float(value)
+                        except ValueError:
+                            return False 
+                        else:
+                            return True
+                return False
+        except FileNotFoundError:
+            return False
+        
     def make_widgets(self):
         """Creates the widgets for the frame.
         """
@@ -90,7 +122,7 @@ class StartPage(tk.Frame):
         self.file_button = ttk.Button(self, text="Buscar...", style='s.TButton', 
                                       command=self.browse_file )
         self.file_entry = ttk.Entry(self, state="disabled", width=40)
-        self.start_button = ttk.Button(self, text="Iniciar", style='b.TButton')
+        self.start_button = ttk.Button(self, text="Iniciar", style='b.TButton', state="disabled")
         
     def place_widgets(self):
         """Places the canvas and the widgets.
