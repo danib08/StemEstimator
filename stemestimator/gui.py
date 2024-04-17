@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
-from tkinter import filedialog
+from tkinter import filedialog, messagebox
 
 class App(tk.Tk):
     """Main application class, represents the main window.
@@ -81,6 +81,7 @@ class StartPage(tk.Frame):
             if self.file_checker(file_path):
                 self.start_button.state(['!disabled'])
             else:
+                messagebox.showerror("Alerta", "El archivo seleccionado no es un archivo XYZ válido.")
                 self.start_button.state(['disabled'])
 
     def file_checker(self, file_path):
@@ -88,6 +89,8 @@ class StartPage(tk.Frame):
 
         :param file_path: The path to the input file.
         :type file_path: str
+        :return: True if the file is of .xyz type, False otherwise.
+        :rtype: bool
         """
         if not file_path.endswith('.xyz'):
             return False
@@ -122,6 +125,7 @@ class StartPage(tk.Frame):
         self.file_button = ttk.Button(self, text="Buscar...", style='s.TButton', 
                                       command=self.browse_file )
         self.file_entry = ttk.Entry(self, state="disabled", width=40)
+        #TODO: add start button command
         self.start_button = ttk.Button(self, text="Iniciar", style='b.TButton', state="disabled")
         
     def place_widgets(self):
