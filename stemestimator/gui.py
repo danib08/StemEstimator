@@ -85,18 +85,18 @@ class StartPage(tk.Frame):
             if self.file_checker(file_path):
                 self.start_button.state(['!disabled'])
             else:
-                messagebox.showerror("Alerta", "El archivo seleccionado no es un archivo XYZ válido.")
+                messagebox.showerror("Alerta", "El archivo seleccionado no es un archivo XYZ o PCD válido.")
                 self.start_button.state(['disabled'])
 
     def file_checker(self, file_path):
-        """Checks if file is of .xyz type.
+        """Checks if file is of .xyz or .pcd type.
 
         :param file_path: The path to the input file.
         :type file_path: str
-        :return: True if the file is of .xyz type, False otherwise.
+        :return: True if the file is of .xyz or .pcd type, False otherwise.
         :rtype: bool
         """
-        if not file_path.endswith('.xyz'):
+        if not (file_path.endswith('.xyz') or file_path.endswith('.pcd')):
             return False
         
         if file_path.endswith('.xyz'):
@@ -171,5 +171,6 @@ class SplashPage(tk.Frame):
         label.pack(side="top", fill="x", pady=10)
 
 if __name__ == "__main__":
-    app = App("Estimador de Tallos", (800, 600))
+    width, height = 800, 600
+    app = App("Estimador de Tallos", (width, height))
     app.mainloop()
