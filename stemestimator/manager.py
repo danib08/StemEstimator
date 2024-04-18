@@ -6,30 +6,48 @@ import treetool.seg_tree as seg_tree
 import treetool.tree_tool as tree_tool
 
 class PointCloudManager:
+    """Manages the point cloud file and its processing.
+
+    :param file_path: The path to the point cloud file.
+    :type file_path: str
+    """
     def __init__(self, file_path):
-        self.point_cloud_v = self.create_point_cloud(file_path)
+        """Constructor method. Creates the pclpy point cloud.
+        """
+        self.point_cloud = self.create_point_cloud(file_path)
+        self.tree_tool = tree_tool.treetool(self.point_cloud)
 
     def create_point_cloud(self, file_path):
+        """Creates a point cloud from the input file.
+        Converts the file if it is of .xyz type.
+
+        :param file_path: The path to the input file.
+        :type file_path: str
+        :return: The point cloud.
+        :rtype: pclpy.pcl.PointCloud.PointXYZ
+        """
+        cloud = pclpy.pcl.PointCloud.PointXYZ()
         convert = file_path.endswith('.xyz')
-        new_filepath = file_path
+
         if convert:
-            data = np.loadtxt(file_path, usecols=(2, 3, 4, 5, 6, 7), dtype=np.float32)
-            pcd = o3d.geometry.PointCloud()
-            pcd.points = o3d.utility.Vector3dVector(data[:, :3]) # x, y, z columns
-            #pcd.colors = o3d.utility.Vector3dVector(data[:, 3:]) # r, g, b columns
+            data = np.loadtxt(file_path, usecols=(2, 3, 4), dtype=np.float32)
 
-            # save the point cloud as PCD
-            new_filepath = './assets/plantacion_melina2.pcd'
-            o3d.io.write_point_cloud(new_filepath, pcd)
+            for point in data:
+                pcl_point = pclpy.pcl.point_types.PointXYZ()
+                pcl_point.x = point[0]
+                pcl_point.y = point[1]
+                pcl_point.z = point[2]
+                cloud.push_back(pcl_point)
+        else:
+            pclpy.pcl.io.loadPCDFile(file_path, cloud)
 
-        point_cloud = pclpy.pcl.PointCloud.PointXYZ()
-        pclpy.pcl.io.loadPCDFile(new_filepath, point_cloud)
-   
-        self.point_cloud_v = seg_tree.voxelize(point_cloud.xyz, leaf=0.06, use_o3d=True)
-        self.tree_tool = tree_tool.treetool(self.point_cloud_v)
+        cloud_voxelized = seg_tree.voxelize(cloud.xyz, leaf=0.06, use_o3d=True)
+        return cloud_voxelized
 
     def show_point_cloud(self):
-        utils.open3dpaint(self.point_cloud_v, reduce_for_vis=False, voxel_size=0.1)
+        """Opens the point cloud in the Open3D viewer.
+        """
+        utils.open3dpaint(self.point_cloud, reduce_for_vis=False)
         
     def remove_floor(self, show=False):
         self.tree_tool.step_1_remove_floor()
