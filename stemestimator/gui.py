@@ -46,6 +46,7 @@ class App(tk.Tk):
 
         :param page_name: The name of the frame to show.
         :type page_name: str
+        :return: None
         """
         frame = self.frames[page_name]
         frame.tkraise()
@@ -63,12 +64,15 @@ class StartPage(tk.Frame):
         """
         super().__init__(parent)
         self.controller = controller
+        self.point_cloud_manager = None
         self.make_widgets()
         self.place_widgets()
 
     def browse_file(self):
         """Opens a file dialog to select a file and inserts the file path
         into the entry.
+
+        :return: None
         """
         file_path = filedialog.askopenfilename()
         if file_path:
@@ -94,26 +98,32 @@ class StartPage(tk.Frame):
         """
         if not file_path.endswith('.xyz'):
             return False
-        try:
-            # XYZ format check (minimum 3 numeric columns)
-            with open(file_path, 'r') as file:
-                for _ in range(100):
-                    line = file.readline().strip()
-                    columns = line.split()
-                    if len(columns) >= 3:
-                        try:
-                            for value in columns:
-                                float(value)
-                        except ValueError:
-                            return False 
-                        else:
-                            return True
-                return False
-        except FileNotFoundError:
-            return False
         
+        if file_path.endswith('.xyz'):
+            # XYZ format check (minimum 3 numeric columns)
+            try:
+                with open(file_path, 'r') as file:
+                    for _ in range(100):
+                        line = file.readline().strip()
+                        columns = line.split()
+                        if len(columns) >= 3:
+                            try:
+                                for value in columns:
+                                    float(value)
+                            except ValueError:
+                                return False 
+                        else:
+                            return False
+                    return True
+            except FileNotFoundError:
+                return False
+        else:
+            return True
+    
     def make_widgets(self):
         """Creates the widgets for the frame.
+
+        :return: None
         """
         self.header_font = ("Helvetica", 18, "bold")
         self.style = ttk.Style()
@@ -125,11 +135,12 @@ class StartPage(tk.Frame):
         self.file_button = ttk.Button(self, text="Buscar...", style='s.TButton', 
                                       command=self.browse_file )
         self.file_entry = ttk.Entry(self, state="disabled", width=40)
-        #TODO: add start button command
         self.start_button = ttk.Button(self, text="Iniciar", style='b.TButton', state="disabled")
         
     def place_widgets(self):
         """Places the canvas and the widgets.
+
+        :return: None
         """
         self.canvas.pack()
         self.canvas.create_image(0, 0, image=self.bg_image, anchor="nw")
