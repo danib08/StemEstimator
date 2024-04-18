@@ -1,22 +1,22 @@
-import io
 import pclpy
 import numpy as np
 import open3d as o3d
-import matplotlib.pyplot as plt
 import treetool.utils as utils
 import treetool.seg_tree as seg_tree
 import treetool.tree_tool as tree_tool
 
-class Test:
-    def __init__(self, file_path, convert=True):
+class PointCloudManager:
+    def __init__(self, file_path):
+        self.point_cloud_v = self.create_point_cloud(file_path)
+
+    def create_point_cloud(self, file_path):
+        convert = file_path.endswith('.xyz')
         new_filepath = file_path
         if convert:
-            data = np.loadtxt(file_path, usecols=(0, 1, 2, 5, 6, 7), dtype=np.float32)
-            data[:, [0, 1]] = data[:, [1, 0]]
-            data[:, 1] = -data[:, 1]  # This line flips the y-coordinates
+            data = np.loadtxt(file_path, usecols=(2, 3, 4, 5, 6, 7), dtype=np.float32)
             pcd = o3d.geometry.PointCloud()
             pcd.points = o3d.utility.Vector3dVector(data[:, :3]) # x, y, z columns
-            pcd.colors = o3d.utility.Vector3dVector(data[:, 3:]) # r, g, b columns
+            #pcd.colors = o3d.utility.Vector3dVector(data[:, 3:]) # r, g, b columns
 
             # save the point cloud as PCD
             new_filepath = './assets/plantacion_melina2.pcd'
@@ -26,7 +26,7 @@ class Test:
         pclpy.pcl.io.loadPCDFile(new_filepath, point_cloud)
    
         self.point_cloud_v = seg_tree.voxelize(point_cloud.xyz, leaf=0.06, use_o3d=True)
-        self.tree_tool = tree_tool.treetool(self.point_cloud_v)       
+        self.tree_tool = tree_tool.treetool(self.point_cloud_v)
 
     def show_point_cloud(self):
         utils.open3dpaint(self.point_cloud_v, reduce_for_vis=False, voxel_size=0.1)
@@ -78,14 +78,3 @@ class Test:
 
     def save_results(self):
         self.tree_tool.save_results(save_location='results/myresults.csv')
-
-cif_path = './assets/plantacion_melina2.xyz'
-other_path = './assets/downsampledlesscloudEURO3.pcd'
-test = Test(other_path, convert=False)
-test.show_point_cloud()
-test.remove_floor(show=True)
-test.normal_filtering(show=True)
-test.clustering(show=True)
-test.group_stems(show=True)
-test.get_ground_level_trees(show=True)
-test.get_cylinders(show=True)
