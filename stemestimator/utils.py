@@ -27,7 +27,7 @@ import pclpy
 from matplotlib import cm
 import matplotlib.pyplot as plt
 import open3d
-import treetool.seg_tree as seg_tree
+import stemestimator.seg_tree as seg_tree
 
 def rotation_matrix_from_vectors(vector1, vector2):
     """

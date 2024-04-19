@@ -1,9 +1,9 @@
+import utils
 import pclpy
+import seg_tree
+import tree_tool
 import numpy as np
-import open3d as o3d
-import treetool.utils as utils
-import treetool.seg_tree as seg_tree
-import treetool.tree_tool as tree_tool
+
 
 class PointCloudManager:
     """Manages the point cloud file and its processing.
@@ -15,7 +15,7 @@ class PointCloudManager:
         """Constructor method. Creates the pclpy point cloud.
         """
         self.point_cloud = self.create_point_cloud(file_path)
-        self.tree_tool = tree_tool.treetool(self.point_cloud)
+        self.tree_tool = tree_tool.treetool(self.point_cloud) #TODO: check for significative name
 
     def create_point_cloud(self, file_path):
         """Creates a point cloud from the input file.
@@ -49,6 +49,7 @@ class PointCloudManager:
         """
         utils.open3dpaint(self.point_cloud, reduce_for_vis=False)
         
+    """
     def remove_floor(self, show=False):
         self.tree_tool.step_1_remove_floor()
         if show:
@@ -96,3 +97,4 @@ class PointCloudManager:
 
     def save_results(self):
         self.tree_tool.save_results(save_location='results/myresults.csv')
+    """
