@@ -7,10 +7,12 @@ class App(tk.Tk):
 
     :param title: The title of the window.
     :type title: str
-    :param size: The size of the window in pixels.
-    :type size: (int, int)
+    :param width: The width of the window in pixels.
+    :type width: int
+    :param height: The height of the window in pixels.
+    :type height: int
     """
-    def __init__(self, title, size):
+    def __init__(self, title, width, height):
         """Constructor method. Sets window properties and creates a 
         container to stack frames on top of each other.
         """
@@ -18,11 +20,12 @@ class App(tk.Tk):
 
         # Main setup    
         self.title(title)
-        self.geometry(f'{size[0]}x{size[1]}')
-        self.minsize(size[0], size[1])
+        self.geometry(f'{width}x{height}')
+        self.minsize(width, height)
         self.resizable(False, False) 
         self.iconbitmap('./assets/icon.ico')  
-        self.
+        self.width = width
+        self.height = height
 
         # The container will stack frames on top of each other
         container = tk.Frame(self)
@@ -31,7 +34,7 @@ class App(tk.Tk):
         container.grid_columnconfigure(0, weight=1)
 
         self.frames = {} # Frame dictionary
-        for F in (StartPage, ProcessingPage): #TODO: add additional pages
+        for F in (StartPage, ProcessingPage):
             page_name = F.__name__
             frame = F(parent=container, controller=self)
             # Add each frame to dictionary
@@ -202,5 +205,5 @@ class ProcessingPage(tk.Frame):
 
 if __name__ == "__main__":
     width, height = 800, 600
-    app = App("Estimador de Tallos", (width, height))
+    app = App("Estimador de Tallos", width, height)
     app.mainloop()
