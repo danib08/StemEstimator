@@ -140,6 +140,10 @@ class StartPage(BasePage):
                                        command=self.go_to_processing)
         
     def place_widgets(self):
+        """Places the widgets on the frame.
+
+        :return: None
+        """
         self.canvas.create_rectangle(200, 100, 600, 400, fill="#32612d", 
                                 outline="", stipple='gray75') 
         self.canvas.create_text(400, 130, text="Estimador de Tallos", 
@@ -167,8 +171,8 @@ class ProcessingPage(BasePage):
         super().__init__(parent, controller, width, height)
         self.create_widgets()
 
-    def create_widgets(self):
-        """Creates the widgets for the frame.
+    def place_widgets(self):
+        """Places the widgets on the frame.
 
         :return: None
         """ 
