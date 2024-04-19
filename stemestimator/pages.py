@@ -126,7 +126,7 @@ class StartPage(BasePage):
         :return: None
         """
         file_path = self.file_entry.get()
-        self.controller.show_frame("ProcessingPage", file_path)
+        self.controller.start_processing(file_path)
     
     def make_widgets(self):
         """Creates the widgets for the frame.
@@ -166,7 +166,7 @@ class ProcessingPage(BasePage):
         """
         super().__init__(parent, controller, width, height)
         self.create_widgets()
-        
+
     def create_widgets(self):
         """Creates the widgets for the frame.
 

@@ -1,4 +1,6 @@
+import threading
 import tkinter as tk
+from manager import PointCloudManager
 from pages import StartPage, ProcessingPage
 
 class App(tk.Tk):
@@ -16,6 +18,8 @@ class App(tk.Tk):
         container to stack frames on top of each other.
         """
         super().__init__()
+        self.manager = None
+        self.frames = {} # Frame dictionary
 
         # Main setup   
         self.title(title)
@@ -26,13 +30,19 @@ class App(tk.Tk):
         self.geometry(f'{width}x{height}')
         self.iconbitmap('./assets/icon.ico')  
 
-        # The container will stack frames on top of each other
+        self.create_frame_dict()
+        self.show_frame("StartPage")
+
+    def create_frame_dict(self):
+        """Creates a dictionary of frames to stack on top of each other.
+
+        :return: None
+        """
         container = tk.Frame(self)
         container.pack(side="top", fill="both", expand=True)
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
 
-        self.frames = {} # Frame dictionary
         for F in (StartPage, ProcessingPage):
             page_name = F.__name__
             frame = F(parent=container, controller=self, width=self.width, height=self.height)
@@ -42,21 +52,35 @@ class App(tk.Tk):
             # Position frames in the same location
             frame.grid(row=0, column=0, sticky="nsew")
 
-        self.show_frame("StartPage")
-
-    def show_frame(self, page_name, str_message=None):
+    def show_frame(self, page_name):
         """Shows a tkinter frame for the given page name.
 
         :param page_name: The name of the frame to show.
         :type page_name: str
-        :param str_message: A message to pass to the new frame.
-        :type str_message: str
         :return: None
         """
         frame = self.frames[page_name]
-        if str_message is not None:
-            frame.pass_message(str_message)
         frame.tkraise()
+
+    def start_processing(self, file_path):
+        """Starts the processing thread for the point cloud.
+
+        :param file_path: The path to the point cloud file.
+        :type file_path: str
+        :return: None
+        """
+        processing_thread = threading.Thread(target=self.point_cloud_processing, args=(file_path,))
+        processing_thread.start()
+
+    def point_cloud_processing(self, file_path):
+        """Processes the point cloud file.
+
+        :param file_path: The path to the point cloud file.
+        :type file_path: str
+        :return: None
+        """
+        self.show_frame("ProcessingPage")
+        self.manager = PointCloudManager(file_path)
 
 if __name__ == "__main__":
     width, height = 800, 600
