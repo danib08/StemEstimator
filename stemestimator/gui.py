@@ -21,7 +21,8 @@ class App(tk.Tk):
         self.geometry(f'{size[0]}x{size[1]}')
         self.minsize(size[0], size[1])
         self.resizable(False, False) 
-        self.iconbitmap('./assets/icon.ico')   
+        self.iconbitmap('./assets/icon.ico')  
+        self.
 
         # The container will stack frames on top of each other
         container = tk.Frame(self)
@@ -30,7 +31,7 @@ class App(tk.Tk):
         container.grid_columnconfigure(0, weight=1)
 
         self.frames = {} # Frame dictionary
-        for F in (StartPage, SplashPage): #TODO: add additional pages
+        for F in (StartPage, ProcessingPage): #TODO: add additional pages
             page_name = F.__name__
             frame = F(parent=container, controller=self)
             # Add each frame to dictionary
@@ -119,6 +120,13 @@ class StartPage(tk.Frame):
                 return False
         else:
             return True
+        
+    def go_to_processing(self):
+        """Shows the processing page.
+
+        :return: None
+        """
+        self.controller.show_frame("ProcessingPage")
     
     def make_widgets(self):
         """Creates the widgets for the frame.
@@ -135,7 +143,8 @@ class StartPage(tk.Frame):
         self.file_button = ttk.Button(self, text="Buscar...", style='s.TButton', 
                                       command=self.browse_file )
         self.file_entry = ttk.Entry(self, state="disabled", width=40)
-        self.start_button = ttk.Button(self, text="Iniciar", style='b.TButton', state="disabled")
+        self.start_button = ttk.Button(self, text="Iniciar", style='b.TButton', state="disabled",
+                                       command=self.go_to_processing)
         
     def place_widgets(self):
         """Places the canvas and the widgets.
@@ -154,8 +163,8 @@ class StartPage(tk.Frame):
         self.canvas.create_window(535, 230, window=self.file_button)
         self.canvas.create_window(400, 300, window=self.start_button)
 
-class SplashPage(tk.Frame):
-    """A splash page for the application.
+class ProcessingPage(tk.Frame):
+    """The processing page for the application.
     :param parent: The parent widget.
     :type parent: tk.Tk
     :param controller: The main application controller.
@@ -167,8 +176,29 @@ class SplashPage(tk.Frame):
         super().__init__(parent)
         self.controller = controller
 
-        label = ttk.Label(self, text="Processing...")
-        label.pack(side="top", fill="x", pady=10)
+        self.make_widgets()
+        self.place_widgets()
+
+    def make_widgets(self):
+        """Creates the widgets for the frame.
+
+        :return: None
+        """
+        self.header_font = ("Helvetica", 18, "bold")
+        self.canvas = tk.Canvas(self, bg="red", width=800, height=600)
+        self.bg_image = tk.PhotoImage(file='./assets/bg_image.png')
+        
+    def place_widgets(self):
+        """Places the canvas and the widgets.
+
+        :return: None
+        """
+        self.canvas.pack()
+        self.canvas.create_image(0, 0, image=self.bg_image, anchor="nw")
+        self.canvas.create_rectangle(200, 100, 600, 400, fill="#32612d", 
+                                outline="", stipple='gray75') 
+        self.canvas.create_text(400, 130, text="Procesando nube de puntos...", 
+                                font=self.header_font, fill="white")
 
 if __name__ == "__main__":
     width, height = 800, 600
