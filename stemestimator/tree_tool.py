@@ -25,8 +25,8 @@ SOFTWARE.
 import pclpy
 import numpy as np
 import pandas as pd
-import stemestimator.seg_tree as seg_tree
-import stemestimator.utils as utils
+import seg_tree as seg_tree
+import utils as utils
 from ellipse import LsqEllipse
 import os
 import open3d as o3d
