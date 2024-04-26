@@ -47,7 +47,7 @@ class PointCloudManager:
     def show_point_cloud(self):
         """Opens the point cloud in the Open3D viewer.
         """
-        utils.open3dpaint(self.point_cloud, reduce_for_vis=False)
+        utils.open_3d_paint(self.point_cloud, reduce_for_vis=False)
         
     """
     def remove_floor(self, show=False):

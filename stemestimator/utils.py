@@ -1,33 +1,9 @@
-"""
-MIT License
-
-Copyright (c) 2021 porteratzo
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-"""
-
-import numpy as np
 import pclpy
+import open3d
+import seg_tree
+import numpy as np
 from matplotlib import cm
 import matplotlib.pyplot as plt
-import open3d
-import seg_tree as seg_tree
 
 def rotation_matrix_from_vectors(vector1, vector2):
     """
@@ -149,33 +125,30 @@ def getPrincipalVectors(A): #
     values,vectors = zip(*sort)
     return vectors,values
 
-
-def open3dpaint(nppoints, color_map = 'jet', reduce_for_vis = False, voxel_size = 0.1, pointsize = 0.1):
+def open_3d_paint(nppoints, color_map='jet', reduce_for_vis=False, voxel_size=0.1, pointsize=0.1):
     """
-        Opens an open3d visualizer and displays point clouds
+    Opens an open3d visualizer and displays point clouds.
 
-        Args:
-            nppoints: pclpy.pcl.PointCloud.PointXYZRGB | pclpy.pcl.PointCloud.PointXYZ | np.ndarray | list | tuple
-                Either a (n,3) point cloud or a list or tuple of point clouds to be displayed
-            
-            color_map: str | list 3
-                By default uses jet color map, it can be a list with 3 ints between 0 and 255 to represent an RBG color to color all points
-
-            reduce_for_vis: bool
-                If true it performs voxel subsampling before displaying the point cloud
-
-            voxel_size: float
-                If reduce_for_vis is true, sets the voxel size for the voxel subsampling
-
-            pointsize: int
-                Size of the distplayed points
-
-        Returns:
-            None
-        """
-    assert (type(nppoints) == pclpy.pcl.PointCloud.PointXYZRGB) or (type(nppoints) == pclpy.pcl.PointCloud.PointXYZ) or (type(nppoints) == np.ndarray) or (type(nppoints) is list) or (type(nppoints) is tuple), 'Not valid point_cloud'
+    :param nppoints: the point cloud(s) to be displayed
+    :type nppoints: pclpy.pcl.PointCloud.PointXYZ or np.ndarray or list or tuple
+    :param color_map: the color map to use for the point cloud
+    :type color_map: str or list
+    :param reduce_for_vis: whether to reduce the point cloud density for visualization
+    :type reduce_for_vis: bool
+    :param voxel_size: the voxel size in case of point cloud reduction
+    :type voxel_size: float
+    :param pointsize: the size of the points in the visualizer
+    :type pointsize: int
+    :raises ValueError: if the type of nppoints is invalid.
+    :raises Exception: if an error occurs during visualization.
+    :return: None
+    """
+    valid_types = [pclpy.pcl.PointCloud.PointXYZ, np.ndarray, list, tuple]
+    if not any(isinstance(nppoints, t) for t in valid_types):
+        raise ValueError("Invalid type for 'nppoints'. It should be one of: pclpy.pcl.PointCloud.PointXYZ, "
+                         "np.ndarray, list, tuple.")
     
-    if (type(nppoints) is not list) & (type(nppoints) is not tuple):
+    if not isinstance(nppoints, (list, tuple)):
         nppoints = [nppoints]
     try:
         visualizer = open3d.visualization.Visualizer()
@@ -185,34 +158,38 @@ def open3dpaint(nppoints, color_map = 'jet', reduce_for_vis = False, voxel_size 
         options.point_size = pointsize
 
         if len(nppoints) > 1:
+            # If multiple point clouds are given, display them in different colors
             for n,i in enumerate(nppoints):
                 workpoints = i
-                if (type(workpoints) == pclpy.pcl.PointCloud.PointXYZRGB) or (type(workpoints) == pclpy.pcl.PointCloud.PointXYZ):
+                if (type(workpoints) == pclpy.pcl.PointCloud.PointXYZ):
                     workpoints = workpoints.xyz
 
                 if reduce_for_vis:
-                    workpoints = seg_tree.voxelize(workpoints,voxel_size)
+                    workpoints = seg_tree.voxelize(workpoints, voxel_size)
 
-                points = convertcloud(workpoints)
+                points = convert_cloud(workpoints)
                 color_coef = n/len(nppoints)/2 + n%2*.5
+
                 if type(color_map) == np.ndarray:
                     color = color_map
                 elif color_map == 'jet':
-                    color=cm.jet(color_coef)[:3]
+                    color = cm.jet(color_coef)[:3]
                 else:
-                    color=cm.Set1(color_coef)[:3]
+                    color = cm.Set1(color_coef)[:3]
+
                 points.colors = open3d.utility.Vector3dVector(np.ones_like(workpoints)*color)
-                #points.colors = open3d.utility.Vector3dVector(color)
                 visualizer.add_geometry(points)
         else:
             workpoints = nppoints[0]
-            if (type(workpoints) == pclpy.pcl.PointCloud.PointXYZRGB) or (type(workpoints) == pclpy.pcl.PointCloud.PointXYZ):
+            if (type(workpoints) == pclpy.pcl.PointCloud.PointXYZ):
                 workpoints = workpoints.xyz
                 
             if reduce_for_vis:
-                workpoints = seg_tree.voxelize(workpoints,voxel_size)
-            points = convertcloud(workpoints)
+                workpoints = seg_tree.voxelize(workpoints, voxel_size)
+
+            points = convert_cloud(workpoints)
             visualizer.add_geometry(points)
+
         visualizer.run()
         visualizer.destroy_window()
         
@@ -222,6 +199,19 @@ def open3dpaint(nppoints, color_map = 'jet', reduce_for_vis = False, voxel_size 
         print(e)
         visualizer.destroy_window()
         
+def convert_cloud(points):
+    """
+    Converts a numpy array point cloud to an open3d point cloud.
+
+    :param points: the point cloud to be converted
+    :type points: np.ndarray (n,3)
+    :return: the Open3D point cloud
+    :rtype: open3d.geometry.PointCloud
+    """
+    pcd = open3d.geometry.PointCloud()
+    pcd.points = open3d.utility.Vector3dVector(points)
+    return pcd
+
 def plt3dpaint(nppoints, color_map = 'jet', reduce_for_vis = True, voxel_size = 0.2, pointsize = 0.1, subplots = 5):
     """
         displays point clouds on matplotlib 3d scatter plots
@@ -297,24 +287,6 @@ def plt3dpaint(nppoints, color_map = 'jet', reduce_for_vis = True, voxel_size = 
         ax = fig.add_subplot(1, subplots, i+1, projection='3d')
         ax.view_init(30, 360*i/subplots)
         ax.scatter3D(plt_pointcloud[:,0], plt_pointcloud[:,1], plt_pointcloud[:,2], c=plt_colors, s=pointsize)
-
-        
-        
-def convertcloud(points):
-    """
-        Turns a numpy (n,3) point cloud to a open3d pointcloud
-
-        Args:
-            points: np.narray (n,3)
-                A 3d numpy point cloud
-
-        Returns:
-            pcd: open3d.geometry.PointCloud
-                An open 3d point cloud
-        """
-    pcd = open3d.geometry.PointCloud()
-    pcd.points = open3d.utility.Vector3dVector(points)
-    return pcd
 
 def makesphere(centroid=[0, 0, 0], radius=1, dense=90):
     n = np.arange(0, 360, int(360 / dense))
