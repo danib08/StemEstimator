@@ -21,14 +21,9 @@ def voxelize(points, voxel_size=0.1, use_o3d=False):
         downsized_pcd = pcd.voxel_down_sample(voxel_size)
         return np.array(downsized_pcd.points)
     else:
-        if type(points) == pclpy.pcl.PointCloud.PointXYZRGB: #TODO: check if safe to remove RBG
-            cloud = points
-            voxel_filter = pclpy.pcl.filters.VoxelGrid.PointXYZRGB()
-            filtered_pointcloud = pclpy.pcl.PointCloud.PointXYZRGB()
-        else:
-            cloud = pclpy.pcl.PointCloud.PointXYZ(points)
-            voxel_filter = pclpy.pcl.filters.VoxelGrid.PointXYZ()
-            filtered_pointcloud = pclpy.pcl.PointCloud.PointXYZ()
+        cloud = pclpy.pcl.PointCloud.PointXYZ(points)
+        voxel_filter = pclpy.pcl.filters.VoxelGrid.PointXYZ()
+        filtered_pointcloud = pclpy.pcl.PointCloud.PointXYZ()
 
         voxel_filter.setLeafSize(voxel_size, voxel_size, voxel_size)
         voxel_filter.setInputCloud(cloud)
