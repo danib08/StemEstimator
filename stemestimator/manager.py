@@ -15,7 +15,7 @@ class PointCloudManager:
         """Constructor method. Creates the pclpy point cloud.
         """
         self.point_cloud = self.create_point_cloud(file_path)
-        self.tree_tool = tree_tool.treetool(self.point_cloud) #TODO: check for significative name
+        self.tree_tool = tree_tool.TreeTool(self.point_cloud)
 
     def create_point_cloud(self, file_path):
         """Creates a point cloud from the input file and subsamples it.
@@ -49,13 +49,12 @@ class PointCloudManager:
         """
         utils.open_3d_paint(self.point_cloud, reduce_for_vis=False)
         
-    """
     def remove_floor(self, show=False):
         self.tree_tool.step_1_remove_floor()
         if show:
-            utils.open3dpaint([self.tree_tool.non_ground_cloud, self.tree_tool.ground_cloud], 
+            utils.open_3d_paint([self.tree_tool.non_ground_cloud, self.tree_tool.ground_cloud], 
                           reduce_for_vis=True, voxel_size=0.1)
-        
+    """
     def normal_filtering(self, show=False):
         self.tree_tool.step_2_normal_filtering(verticality_threshold=0.04,
                                                curvature_threshold=0.06, search_radius=0.12)
