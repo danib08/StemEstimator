@@ -18,13 +18,13 @@ class PointCloudManager:
         self.tree_tool = tree_tool.treetool(self.point_cloud) #TODO: check for significative name
 
     def create_point_cloud(self, file_path):
-        """Creates a point cloud from the input file.
+        """Creates a point cloud from the input file and subsamples it.
         Converts the file if it is of .xyz type.
 
         :param file_path: The path to the input file.
         :type file_path: str
-        :return: The point cloud.
-        :rtype: pclpy.pcl.PointCloud.PointXYZ
+        :return: The point cloud as an array.
+        :rtype: np.ndarray (n,3)
         """
         cloud = pclpy.pcl.PointCloud.PointXYZ()
         convert = file_path.endswith('.xyz')
@@ -41,7 +41,7 @@ class PointCloudManager:
         else:
             pclpy.pcl.io.loadPCDFile(file_path, cloud)
 
-        cloud_voxelized = seg_tree.voxelize(cloud.xyz, leaf=0.06, use_o3d=True)
+        cloud_voxelized = seg_tree.voxelize(cloud.xyz, voxel_size=0.06, use_o3d=True)
         return cloud_voxelized
 
     def show_point_cloud(self):

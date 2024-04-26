@@ -1,31 +1,43 @@
-"""
-MIT License
-
-Copyright (c) 2021 porteratzo
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-"""
-
 import pclpy
-import open3d as o3d
 import numpy as np
+import open3d as o3d
 
+def voxelize(points, voxel_size=0.1, use_o3d=False):
+    """
+    Uses voxel grid filtering to downsample a point cloud.
+
+    :param points: The point cloud to be downsampled.
+    :type points: np.ndarray (n,3)
+    :param voxel_size: The size of the voxel grid.
+    :type voxel_size: float
+    :param use_o3d: Whether to use Open3D for the voxel grid filtering.
+    :type use_o3d: bool
+    :return: The downsampled point cloud.
+    :rtype: np.ndarray (n,3)
+    """
+    if use_o3d:
+        pcd = o3d.geometry.PointCloud()
+        pcd.points = o3d.utility.Vector3dVector(points)
+        downsized_pcd = pcd.voxel_down_sample(voxel_size)
+        return np.array(downsized_pcd.points)
+    else:
+        if type(points) == pclpy.pcl.PointCloud.PointXYZRGB: #TODO: check if safe to remove RBG
+            cloud = points
+            voxel_filter = pclpy.pcl.filters.VoxelGrid.PointXYZRGB()
+            filtered_pointcloud = pclpy.pcl.PointCloud.PointXYZRGB()
+        else:
+            cloud = pclpy.pcl.PointCloud.PointXYZ(points)
+            voxel_filter = pclpy.pcl.filters.VoxelGrid.PointXYZ()
+            filtered_pointcloud = pclpy.pcl.PointCloud.PointXYZ()
+
+        voxel_filter.setLeafSize(voxel_size, voxel_size, voxel_size)
+        voxel_filter.setInputCloud(cloud)
+
+        voxel_filter.filter(filtered_pointcloud)
+        if type(points) == pclpy.pcl.PointCloud.PointXYZRGB:
+            return filtered_pointcloud
+        else:
+            return filtered_pointcloud.xyz
 
 def floor_remove(
     points,
@@ -416,46 +428,6 @@ def findstemsLiDAR(pointsXYZ):
                     stem_clouds.append(points)
                     models.append(model)
     return stem_clouds, models
-
-
-def voxelize(points, leaf=0.1, use_o3d=False):
-    """
-    Use voxelgrid to subsample a pointcloud
-
-    Args:
-        points : np.ndarray
-            (n,3) point cloud
-
-        leaf: float
-            Voxelsize
-
-    Returns:
-        VFmm: np.narray (n,3)
-            (n,3) subsampled Pointcloud
-
-    """
-    if use_o3d:
-        pcd = o3d.geometry.PointCloud()
-        pcd.points = o3d.utility.Vector3dVector(points)
-        downpcd = pcd.voxel_down_sample(voxel_size=leaf)
-        return np.array(downpcd.points)
-    else:
-        if type(points) == pclpy.pcl.PointCloud.PointXYZRGB:
-            cloud = points
-            voxel_filter = pclpy.pcl.filters.VoxelGrid.PointXYZRGB()
-            filtered_pointcloud = pclpy.pcl.PointCloud.PointXYZRGB()
-        else:
-            cloud = pclpy.pcl.PointCloud.PointXYZ(points)
-            voxel_filter = pclpy.pcl.filters.VoxelGrid.PointXYZ()
-            filtered_pointcloud = pclpy.pcl.PointCloud.PointXYZ()
-        voxel_filter.setLeafSize(leaf, leaf, leaf)
-        voxel_filter.setInputCloud(cloud)
-
-        voxel_filter.filter(filtered_pointcloud)
-        if type(points) == pclpy.pcl.PointCloud.PointXYZRGB:
-            return filtered_pointcloud
-        else:
-            return filtered_pointcloud.xyz
 
 def box_crop(points, min, max):
     if type(points) == pclpy.pcl.PointCloud.PointXYZ:
