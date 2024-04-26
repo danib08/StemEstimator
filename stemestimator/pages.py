@@ -169,7 +169,7 @@ class ProcessingPage(BasePage):
         """Constructor method. Sets the controller and creates the widgets.
         """
         super().__init__(parent, controller, width, height)
-        self.create_widgets()
+        self.place_widgets()
 
     def place_widgets(self):
         """Places the widgets on the frame.
