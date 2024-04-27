@@ -9,24 +9,30 @@ from ellipse import LsqEllipse
 class TreeTool:
     """
     Holds all methods to process point cloud into a list of all tree stem locations and DBHs.
+
+    :param point_cloud: The 3D point cloud of the forest to be processed.
+    :type point_cloud: np.ndarray (n,3) or pclpy.pcl.PointCloud.PointXYZ
     """
     def __init__(self, point_cloud=None):
+        """Constructor method. Initializes the point cloud and the attributes to store the results.
+
+        :raises ValueError: If the point cloud is not of the correct type.
         """
-        Parameters
-        ----------
-        point_cloud : np.narray | pclpy.pcl.PointCloud.PointXYZRGB | pclpy.pcl.PointCloud.PointXYZRGB
-            The 3d point cloud of the forest that treetool will process, if it's a numpy array it should be shape (n,3)
-        """
+        valid_types = [pclpy.pcl.PointCloud.PointXYZ, np.ndarray, None]
+
+        if point_cloud is not None and type(point_cloud) not in valid_types:
+            raise ValueError("Invalid type for 'point_cloud'. It should be one of: "
+                             "pclpy.pcl.PointCloud.PointXYZ, np.ndarray.")
+        
         if point_cloud is not None:
-            assert (
-                (type(point_cloud) == pclpy.pcl.PointCloud.PointXYZRGB)
-                or (type(point_cloud) == pclpy.pcl.PointCloud.PointXYZ)
-                or (type(point_cloud) == np.ndarray)
-            ), "Not valid point_cloud"
-            if type(point_cloud) == np.ndarray:
+            if isinstance(point_cloud, np.ndarray):
                 self.point_cloud = pclpy.pcl.PointCloud.PointXYZ(point_cloud)
             else:
                 self.point_cloud = point_cloud
+            self.non_ground_cloud = None
+            self.ground_cloud = None
+        else:
+            self.point_cloud = None
             self.non_ground_cloud = None
             self.ground_cloud = None
 
