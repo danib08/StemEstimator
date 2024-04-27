@@ -61,19 +61,22 @@ class PointCloudManager:
         if show:
             utils.open_3d_paint([self.tree_tool.non_ground_cloud, self.tree_tool.ground_cloud], 
                           reduce_for_vis=True, voxel_size=0.1)
-    """
+            
     def normal_filtering(self, show=False):
+        """Filters the point cloud based on normals.
+
+        :param show: Whether to show the result in the Open3D viewer.
+        :type show: bool
+        :return: None
+        """
         self.tree_tool.step_2_normal_filtering(verticality_threshold=0.04,
                                                curvature_threshold=0.06, search_radius=0.12)
         if show:
-            utils.open3dpaint([self.tree_tool.non_ground_cloud.xyz, self.tree_tool.non_filtered_points.xyz + 
-                            self.tree_tool.non_filtered_normals * 0.1, self.tree_tool.non_filtered_points.xyz +
-                            self.tree_tool.non_filtered_normals * 0.2], reduce_for_vis=True, voxel_size=0.1)
-            
-            utils.open3dpaint([self.tree_tool.filtered_points.xyz, self.tree_tool.filtered_points.xyz +
+            utils.open_3d_paint([self.tree_tool.filtered_points.xyz, self.tree_tool.filtered_points.xyz +
                             self.tree_tool.filtered_normals * 0.05, self.tree_tool.filtered_points.xyz +
                             self.tree_tool.filtered_normals * 0.1], reduce_for_vis=True, voxel_size=0.1)
 
+    """
     def clustering(self, show=False):
         self.tree_tool.step_3_euclidean_clustering(tolerance=0.2, min_cluster_size=40, max_cluster_size=6000000)
         if show:

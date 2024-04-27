@@ -53,6 +53,7 @@ def remove_ground(point_cloud, max_window_size=20, slope=1.0,
     """
     ground_indices = pclpy.pcl.vectors.Int()
 
+    # Apply the Progressive Morphological Filter
     filter = pclpy.pcl.segmentation.ApproximateProgressiveMorphologicalFilter.PointXYZ()
     filter.setInputCloud(point_cloud)
     filter.setMaxWindowSize(max_window_size)
@@ -61,6 +62,7 @@ def remove_ground(point_cloud, max_window_size=20, slope=1.0,
     filter.setMaxDistance(max_distance)
     filter.extract(ground_indices)
 
+    # Separate the ground and non-ground points
     ground = pclpy.pcl.PointCloud.PointXYZ()
     non_ground = pclpy.pcl.PointCloud.PointXYZ()
     extract = pclpy.pcl.filters.ExtractIndices.PointXYZ()
@@ -73,63 +75,50 @@ def remove_ground(point_cloud, max_window_size=20, slope=1.0,
     return non_ground.xyz, ground.xyz
 
 def radius_outlier_removal(points, min_n=6, radius=0.4, organized=True):
+    """Removes points that have less than min_n neighbors in a certain radius.
+
+    :param points: The point cloud to be filtered.
+    :type points: np.ndarray (n,3)
+    :param min_n: The minimum number of neighbors a point must have to be kept.
+    :type min_n: int
+    :param radius: The radius within which to search for neighbors.
+    :type radius: float
+    :param organized: Whether outlier points are set to NaN instead of removing the points from the cloud. q
+    :type organized: bool
+    :return: The filtered point cloud.
+    :rtype: np.ndarray (n,3)
     """
-    Takes a point cloud and removes points that have less than minn neigbors in a certain radius
-
-    Args:
-        points : np.ndarray
-            (n,3) point cloud
-
-        min_n: int
-            Neighbor threshold to keep a point
-
-        radius: float
-            Radius of the sphere a point can be in to be considered a neighbor of our sample point
-
-        organized: bool
-            If true outlier points are set to nan instead of removing the points from the cloud
-
-
-    Returns:
-        filtered_point_cloud.xyz : np.narray (n,3)
-            (n,3) Pointcloud with outliers removed
-
-    """
-    ror_filter = pclpy.pcl.filters.RadiusOutlierRemoval.PointXYZ()
     cloud = pclpy.pcl.PointCloud.PointXYZ(points)
+
+    ror_filter = pclpy.pcl.filters.RadiusOutlierRemoval.PointXYZ()
     ror_filter.setInputCloud(cloud)
     ror_filter.setMinNeighborsInRadius(min_n)
     ror_filter.setRadiusSearch(radius)
     ror_filter.setKeepOrganized(organized)
+
     filtered_point_cloud = pclpy.pcl.PointCloud.PointXYZ()
     ror_filter.filter(filtered_point_cloud)
     return filtered_point_cloud.xyz
 
-
 def extract_normals(points, search_radius=0.1):
+    """Estimates the normals of a point cloud using OpenMP approach.
+
+    :param points: The point cloud.
+    :type points: np.ndarray (n,3)
+    :param search_radius: The radius used to estimate the normals.
+    :type search_radius: float
+    :return: Normal vectors corresponding to the points in the input point cloud.
+    :rtype: np.ndarray (n,3)
     """
-    Takes a point cloud and approximates their normals using PCA
-
-    Args:
-        points : np.ndarray
-            (n,3) point cloud
-
-        search_radius: float
-            Radius of the sphere a point can be in to be considered in the calculation of a sample points' normal
-
-    Returns:
-        normals : np.narray (n,3)
-            (n,3) Normal vectors corresponding to the points in the input point cloud
-
-    """
-    cloud = pclpy.pcl.PointCloud.PointXYZ(points)
-    cloud_normal_estimator = pclpy.pcl.features.NormalEstimationOMP.PointXYZ_Normal()
     tree = pclpy.pcl.search.KdTree.PointXYZ()
-    cloud_normal_estimator.setInputCloud(cloud)
-    cloud_normal_estimator.setSearchMethod(tree)
-    cloud_normal_estimator.setRadiusSearch(search_radius)
+    cloud = pclpy.pcl.PointCloud.PointXYZ(points)
+
+    normal_estimator = pclpy.pcl.features.NormalEstimationOMP.PointXYZ_Normal()
+    normal_estimator.setInputCloud(cloud)
+    normal_estimator.setSearchMethod(tree)
+    normal_estimator.setRadiusSearch(search_radius)
     normals = pclpy.pcl.PointCloud.Normal()
-    cloud_normal_estimator.compute(normals)
+    normal_estimator.compute(normals)
     return normals
 
 

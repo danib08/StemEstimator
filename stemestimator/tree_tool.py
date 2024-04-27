@@ -51,6 +51,50 @@ class TreeTool:
         self.non_ground_cloud = pclpy.pcl.PointCloud.PointXYZ(non_ground)
         self.ground_cloud = pclpy.pcl.PointCloud.PointXYZ(ground)
 
+    def step_2_normal_filtering(self, search_radius=0.08, verticality_threshold=0.08, 
+                                curvature_threshold=0.12, min_points=0):
+        """Filters the non-ground points based on their normals, removing vertical and curved points.
+
+        :param search_radius: Radius used for neighborhood search to calculate normals
+        :type search_radius: float
+        :param verticality_threshold: Threshold used to filter out points based on their verticality.
+        :type verticality_threshold: float
+        :param curvature_threshold: Threshold used to filter out points based on their curvature.
+        :type curvature_threshold: float
+        :param min_points: Minimum number of points required for neighborhood search (optional).
+        :type min_points: int
+        """
+        if min_points > 0:
+            subject_cloud = seg_tree.radius_outlier_removal(self.non_ground_cloud.xyz, min_points, 
+                                                            search_radius, organized=False)
+        else:
+            subject_cloud = self.non_ground_cloud.xyz
+
+        non_ground_normals = seg_tree.extract_normals(subject_cloud, search_radius)
+
+        # Removing NaN points
+        non_nan_mask = np.bitwise_not(np.isnan(non_ground_normals.normals[:, 0]))
+        non_nan_cloud = subject_cloud[non_nan_mask]
+        non_nan_normals = non_ground_normals.normals[non_nan_mask]
+        non_nan_curvature = non_ground_normals.curvature[non_nan_mask]
+
+        # Filtering by verticality and curvature
+        verticality = np.dot(non_nan_normals, [[0], [0], [1]]) # Dot product with vertical vector
+        verticality_mask = (verticality < verticality_threshold) & (-verticality_threshold < verticality)
+
+        curvature_mask = non_nan_curvature < curvature_threshold
+        verticality_curvature_mask = verticality_mask.ravel() & curvature_mask.ravel()
+
+        only_horizontal_points = non_nan_cloud[verticality_curvature_mask]
+        only_horizontal_normals = non_nan_normals[verticality_curvature_mask]
+
+        # Set filtered and non filtered points
+        self.non_ground_normals = non_ground_normals
+        self.non_filtered_normals = non_nan_normals
+        self.non_filtered_points = pclpy.pcl.PointCloud.PointXYZ(non_nan_cloud)
+        self.filtered_points = pclpy.pcl.PointCloud.PointXYZ(only_horizontal_points) # Trunk points
+        self.filtered_normals = only_horizontal_normals
+
     def set_point_cloud(self, point_cloud):
         """
         Resets the point cloud that treetool will process
@@ -72,64 +116,6 @@ class TreeTool:
                 self.point_cloud = pclpy.pcl.PointCloud.PointXYZ(point_cloud)
             else:
                 self.point_cloud = point_cloud
-
-    def step_2_normal_filtering(
-        self,
-        search_radius=0.08,
-        verticality_threshold=0.08,
-        curvature_threshold=0.12,
-        min_points=0,
-    ):
-        """
-        Filters non_ground_cloud by approximating its normals and removing points with a high curvature and a non near horizontal normal
-        the points that remained are assigned to
-
-        Args:
-            search_radius : float
-                Maximum distance of the points to a sample point that will be used to approximate a the sample point's normal
-
-            verticality_threshold: float
-                Threshold in radians for filtering the verticality of each point, we determine obtaining the dot product of each points normal by a vertical vector [0,0,1]
-
-            curvature_threshold: float
-                Threshold [0-1] for filtering the curvature of each point, the curvature is given by lambda_0/(lambda_0 + lambda_1 + lambda_2) where lambda_j is the
-                j-th eigenvalue of the covariance matrix of radius of points around each query point and lambda_0 < lambda_1 < lambda_2
-
-        Returns:
-            None
-        """
-        # get point normals
-        if min_points > 0:
-            subject_cloud = seg_tree.radius_outlier_removal(
-                self.non_ground_cloud.xyz, min_points, search_radius, organized=False
-            )
-        else:
-            subject_cloud = self.non_ground_cloud.xyz
-        non_ground_normals = seg_tree.extract_normals(subject_cloud, search_radius)
-
-        # remove Nan points
-        non_nan_mask = np.bitwise_not(np.isnan(non_ground_normals.normals[:, 0]))
-        non_nan_cloud = subject_cloud[non_nan_mask]
-        non_nan_normals = non_ground_normals.normals[non_nan_mask]
-        non_nan_curvature = non_ground_normals.curvature[non_nan_mask]
-
-        # get mask by filtering verticality and curvature
-        verticality = np.dot(non_nan_normals, [[0], [0], [1]])
-        verticality_mask = (verticality < verticality_threshold) & (
-            -verticality_threshold < verticality
-        )
-        curvature_mask = non_nan_curvature < curvature_threshold
-        verticality_curvature_mask = verticality_mask.ravel() & curvature_mask.ravel()
-
-        only_horizontal_points = non_nan_cloud[verticality_curvature_mask]
-        only_horizontal_normals = non_nan_normals[verticality_curvature_mask]
-
-        # set filtered and non filtered points
-        self.non_ground_normals = non_ground_normals
-        self.non_filtered_normals = non_nan_normals
-        self.non_filtered_points = pclpy.pcl.PointCloud.PointXYZ(non_nan_cloud)
-        self.filtered_points = pclpy.pcl.PointCloud.PointXYZ(only_horizontal_points)
-        self.filtered_normals = only_horizontal_normals
 
     def step_3_euclidean_clustering(
         self, tolerance=0.1, min_cluster_size=40, max_cluster_size=6000000
