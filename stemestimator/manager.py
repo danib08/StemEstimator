@@ -4,7 +4,6 @@ import seg_tree
 import tree_tool
 import numpy as np
 
-
 class PointCloudManager:
     """Manages the point cloud file and its processing.
 
@@ -46,11 +45,19 @@ class PointCloudManager:
 
     def show_point_cloud(self):
         """Opens the point cloud in the Open3D viewer.
+
+        :return: None
         """
         utils.open_3d_paint(self.point_cloud, reduce_for_vis=False)
         
-    def remove_floor(self, show=False):
-        self.tree_tool.step_1_remove_floor()
+    def remove_ground(self, show=False):
+        """Removes the floor from the point cloud.
+
+        :param show: Whether to show the result in the Open3D viewer.
+        :type show: bool
+        :return: None
+        """
+        self.tree_tool.step_1_remove_ground()
         if show:
             utils.open_3d_paint([self.tree_tool.non_ground_cloud, self.tree_tool.ground_cloud], 
                           reduce_for_vis=True, voxel_size=0.1)

@@ -3,8 +3,7 @@ import numpy as np
 import open3d as o3d
 
 def voxelize(points, voxel_size=0.1, use_o3d=False):
-    """
-    Uses voxel grid filtering to downsample a point cloud.
+    """Uses voxel grid filtering to downsample a point cloud.
 
     :param points: The point cloud to be downsampled.
     :type points: np.ndarray (n,3)
@@ -34,60 +33,44 @@ def voxelize(points, voxel_size=0.1, use_o3d=False):
         else:
             return filtered_pointcloud.xyz
 
-def floor_remove(
-    points,
-    set_max_window_size=20,
-    set_slope=1.0,
-    set_initial_distance=0.5,
-    set_max_distance=3.0,
-):
+def remove_ground(point_cloud, max_window_size=20, slope=1.0, 
+                 initial_distance=0.5, max_distance=3.0):
+    """Applies the Progressive Morphological Filter to a point cloud in order to 
+    separate the ground points from the non-ground points.
+
+    :param point_cloud: The point cloud to be filtered.
+    :type point_cloud: np.ndarray (n,3)
+    :param max_window_size: The maximum window size to be used in filtering ground returns.
+    :type max_window_size: int
+    :param slope: Slope value to be used in computing the height threshold.
+    :type slope: float
+    :param initial_distance: Initial height above the parameterized ground surface to be considered a ground return.
+    :type initial_distance: float
+    :param max_distance: Maximum height above the parameterized ground surface to be considered a ground return.
+    :type max_distance: float
+    :return: The non-ground and ground point clouds.
+    :rtype: np.ndarray (n,3), np.ndarray (n,3)
     """
-    Takes a point cloud and returns 2 pointclouds, the first for non ground points and the second for ground points
+    ground_indices = pclpy.pcl.vectors.Int()
 
-    Args:
-        points : np.ndarray
-            (n,3) point cloud
+    filter = pclpy.pcl.segmentation.ApproximateProgressiveMorphologicalFilter.PointXYZ()
+    filter.setInputCloud(point_cloud)
+    filter.setMaxWindowSize(max_window_size)
+    filter.setSlope(slope)
+    filter.setInitialDistance(initial_distance)
+    filter.setMaxDistance(max_distance)
+    filter.extract(ground_indices)
 
-        set_max_window_size: int
-            Set the maximum window size to be used in filtering ground returns.
-
-        set_slope: float
-            Set the slope value to be used in computing the height threshold.
-
-        set_initial_distance: float
-            Set the initial height above the parameterized ground surface to be considered a ground return.
-
-        set_max_distance: float
-            Set the maximum height above the parameterized ground surface to be considered a ground return.
-
-    Returns:
-        non_ground_points.xyz : np.narray (n,3)
-            3d point cloud of only non ground points
-
-        ground.xyz : np.narray (n,3)
-            3d point cloud of only ground points
-
-    """
-    PointCloud = points
-    ind = pclpy.pcl.vectors.Int()
-    pmf = pclpy.pcl.segmentation.ApproximateProgressiveMorphologicalFilter.PointXYZ()
-    pmf.setInputCloud(PointCloud)
-    pmf.setMaxWindowSize(set_max_window_size)
-    pmf.setSlope(set_slope)
-    pmf.setInitialDistance(set_initial_distance)
-    pmf.setMaxDistance(set_max_distance)
-    pmf.extract(ind)
-    ext = pclpy.pcl.filters.ExtractIndices.PointXYZ()
     ground = pclpy.pcl.PointCloud.PointXYZ()
-    non_ground_points = pclpy.pcl.PointCloud.PointXYZ()
-    ext.setInputCloud(PointCloud)
-    ext.setIndices(ind)
-    ext.filter(ground)
-    ext.setNegative(True)
-    ext.filter(non_ground_points)
+    non_ground = pclpy.pcl.PointCloud.PointXYZ()
+    extract = pclpy.pcl.filters.ExtractIndices.PointXYZ()
+    extract.setInputCloud(point_cloud)
+    extract.setIndices(ground_indices)
+    extract.filter(ground)
+    extract.setNegative(True)
+    extract.filter(non_ground)
 
-    return non_ground_points.xyz, ground.xyz
-
+    return non_ground.xyz, ground.xyz
 
 def radius_outlier_removal(points, min_n=6, radius=0.4, organized=True):
     """
@@ -392,7 +375,7 @@ def findstemsLiDAR(pointsXYZ):
             List of model coefficients corresponding to each extracted stem
 
     """
-    non_ground_points, ground = floor_remove(pointsXYZ)
+    non_ground_points, ground = remove_ground(pointsXYZ)
     flatpoints = np.hstack(
         [non_ground_points[:, 0:2], np.zeros_like(non_ground_points)[:, 0:1]]
     )

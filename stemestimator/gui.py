@@ -81,6 +81,7 @@ class App(tk.Tk):
         """
         self.show_frame("ProcessingPage")
         self.manager = PointCloudManager(file_path)
+        self.manager.remove_ground(show=True)
 
 if __name__ == "__main__":
     width, height = 800, 600

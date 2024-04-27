@@ -24,17 +24,32 @@ class TreeTool:
             raise ValueError("Invalid type for 'point_cloud'. It should be one of: "
                              "pclpy.pcl.PointCloud.PointXYZ, np.ndarray.")
         
+        self.point_cloud = None
+        self.non_ground_cloud = None
+        self.ground_cloud = None
+
         if point_cloud is not None:
             if isinstance(point_cloud, np.ndarray):
                 self.point_cloud = pclpy.pcl.PointCloud.PointXYZ(point_cloud)
             else:
                 self.point_cloud = point_cloud
-            self.non_ground_cloud = None
-            self.ground_cloud = None
-        else:
-            self.point_cloud = None
-            self.non_ground_cloud = None
-            self.ground_cloud = None
+
+    def step_1_remove_ground(self, max_window_size=20, slope=1.0, initial_distance=0.5, max_distance=3.0):
+        """Removes the ground points from the point cloud using a filter.
+        :param max_window_size: The maximum window size for the filter.
+        :type max_window_size: int
+        :param slope: The slope of the filter.
+        :type slope: float
+        :param initial_distance: The initial distance for the filter.
+        :type initial_distance: float
+        :param max_distance: The maximum distance for the filter.
+        :type max_distance: float
+        :return: None
+        """
+        non_ground, ground = seg_tree.remove_ground(self.point_cloud, max_window_size, slope, 
+                                                    initial_distance, max_distance)
+        self.non_ground_cloud = pclpy.pcl.PointCloud.PointXYZ(non_ground)
+        self.ground_cloud = pclpy.pcl.PointCloud.PointXYZ(ground)
 
     def set_point_cloud(self, point_cloud):
         """
@@ -57,32 +72,6 @@ class TreeTool:
                 self.point_cloud = pclpy.pcl.PointCloud.PointXYZ(point_cloud)
             else:
                 self.point_cloud = point_cloud
-
-    def step_1_remove_floor(
-        self,
-        set_max_window_size=20,
-        set_slope=1.0,
-        set_initial_distance=0.5,
-        set_max_distance=3.0,
-    ):
-        """
-        Applies ApproximateProgressiveMorphologicalFilter to point_cloud to separate the it's points into non_ground and ground points and assigns them to the non_ground_cloud and ground_cloud attributes
-
-        Args:
-            None
-
-        Returns:
-            None
-        """
-        no_ground_points, ground = seg_tree.floor_remove(
-            self.point_cloud,
-            set_max_window_size=set_max_window_size,
-            set_slope=set_slope,
-            set_initial_distance=set_initial_distance,
-            set_max_distance=set_max_distance,
-        )
-        self.non_ground_cloud = pclpy.pcl.PointCloud.PointXYZ(no_ground_points)
-        self.ground_cloud = pclpy.pcl.PointCloud.PointXYZ(ground)
 
     def step_2_normal_filtering(
         self,
@@ -452,7 +441,7 @@ class TreeTool:
 
         """
         print("step_1_Remove_Floor")
-        self.step_1_remove_floor()
+        self.step_1_remove_ground()
         print("step_2_normal_filtering")
         self.step_2_normal_filtering(
             search_radius, verticality_threshold, curvature_threshold
