@@ -110,58 +110,47 @@ def extract_normals(points, search_radius):
     :return: Normal vectors corresponding to the points in the input point cloud.
     :rtype: np.ndarray (n,3)
     """
-    tree = pclpy.pcl.search.KdTree.PointXYZ()
+    kd_tree = pclpy.pcl.search.KdTree.PointXYZ()
     cloud = pclpy.pcl.PointCloud.PointXYZ(points)
 
     normal_estimator = pclpy.pcl.features.NormalEstimationOMP.PointXYZ_Normal()
     normal_estimator.setInputCloud(cloud)
-    normal_estimator.setSearchMethod(tree)
+    normal_estimator.setSearchMethod(kd_tree)
     normal_estimator.setRadiusSearch(search_radius)
     normals = pclpy.pcl.PointCloud.Normal()
     normal_estimator.compute(normals)
     return normals
 
-
 def euclidean_cluster_extract(points, tolerance, min_cluster_size, max_cluster_size):
+    """Clusters points based on Euclidean distance.
+
+    :param points: The point cloud to be clustered.
+    :type points: np.ndarray (n,3)
+    :param tolerance: The maximum distance between two points to be considered in the same cluster.
+    :type tolerance: float
+    :param min_cluster_size: The minimum number of points a cluster must have to be returned.
+    :type min_cluster_size: int
+    :param max_cluster_size: The maximum number of points a cluster must have to be returned.
+    :type max_cluster_size: int
+    :return: The clusters of points.
+    :rtype: list(np.ndarray (n,3))
     """
-    Takes a point cloud and clusters the points with euclidean clustering
-
-    Args:
-        points : np.ndarray
-            (n,3) point cloud
-
-        tolerance: int
-            Maximum distance a point can be to a cluster to added to that cluster
-
-        min_cluster_size: int
-            Minimum number of points a cluster must have to be returned
-
-        max_cluster_size: int
-            Maximum number of points a cluster must have to be returned
-
-
-    Returns:
-        cluster_list : list
-            List of (n,3) Pointclouds representing each cluster
-
-    """
-    filtered_points = pclpy.pcl.segmentation.EuclideanClusterExtraction.PointXYZ()
-    kd_tree = pclpy.pcl.search.KdTree.PointXYZ()
     points_to_cluster = pclpy.pcl.PointCloud.PointXYZ(points)
+    kd_tree = pclpy.pcl.search.KdTree.PointXYZ()
+    clustering = pclpy.pcl.segmentation.EuclideanClusterExtraction.PointXYZ()
 
     kd_tree.setInputCloud(points_to_cluster)
-    filtered_points.setInputCloud(points_to_cluster)
-    filtered_points.setClusterTolerance(tolerance)
-    filtered_points.setMinClusterSize(min_cluster_size)
-    filtered_points.setMaxClusterSize(max_cluster_size)
-    filtered_points.setSearchMethod(kd_tree)
+    clustering.setInputCloud(points_to_cluster)
+    clustering.setClusterTolerance(tolerance)
+    clustering.setMinClusterSize(min_cluster_size)
+    clustering.setMaxClusterSize(max_cluster_size)
+    clustering.setSearchMethod(kd_tree)
 
-    point_indexes = pclpy.pcl.vectors.PointIndices()
-    filtered_points.extract(point_indexes)
+    cluster_indices = pclpy.pcl.vectors.PointIndices()
+    clustering.extract(cluster_indices)
 
-    cluster_list = [points_to_cluster.xyz[i2.indices] for i2 in point_indexes]
+    cluster_list = [points_to_cluster.xyz[cluster.indices] for cluster in cluster_indices]
     return cluster_list
-
 
 def region_growing(
     Points, ksearch=30, minc=20, maxc=100000, nn=30, smoothness=30.0, curvature=1.0

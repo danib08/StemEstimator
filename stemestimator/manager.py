@@ -75,32 +75,39 @@ class PointCloudManager:
             utils.open_3d_paint([self.tree_tool.filtered_points.xyz, self.tree_tool.filtered_points.xyz +
                             self.tree_tool.filtered_normals * 0.05, self.tree_tool.filtered_points.xyz +
                             self.tree_tool.filtered_normals * 0.1], reduce_for_vis=True, voxel_size=0.1)
-    """
+
     def clustering(self, show=False):
+        """Clusters the point cloud.
+
+        :param show: Whether to show the result in the Open3D viewer.
+        :type show: bool
+        :return: None
+        """
         self.tree_tool.step_3_euclidean_clustering(tolerance=0.2, min_cluster_size=40, max_cluster_size=6000000)
         if show:
-            utils.open3dpaint(self.tree_tool.cluster_list, reduce_for_vis=True, voxel_size=0.1)
+            utils.open_3d_paint(self.tree_tool.cluster_list, reduce_for_vis=True, voxel_size=0.1)
+    """
     def group_stems(self, show=False):
         self.tree_tool.step_4_group_stems(max_distance=0.4)
 
         if show:
-            utils.open3dpaint(self.tree_tool.complete_Stems, reduce_for_vis=True, voxel_size=0.1)
+            utils.open_3d_paint(self.tree_tool.complete_Stems, reduce_for_vis=True, voxel_size=0.1)
 
     def get_ground_level_trees(self, show=False):
         self.tree_tool.step_5_get_ground_level_trees(lowstems_height=5, cutstems_height=5)
 
         if show:
-            utils.open3dpaint(self.tree_tool.low_stems, reduce_for_vis=True, voxel_size=0.1)
+            utils.open_3d_paint(self.tree_tool.low_stems, reduce_for_vis=True, voxel_size=0.1)
 
     def get_cylinders(self, show=False):
         self.tree_tool.step_6_get_cylinder_tree_models(search_radius=0.1)
 
         if show:
-            utils.open3dpaint([i['tree'] for i in self.tree_tool.finalstems] +
+            utils.open_3d_paint([i['tree'] for i in self.tree_tool.finalstems] +
                               self.tree_tool.visualization_cylinders, reduce_for_vis=True, voxel_size=0.1)
             
     def ellipse_fit(self):
-        self.tree_tool.step_7_ellipse_fit()
+        self.tree_tool.open_3d_paint()
 
     def save_results(self):
         self.tree_tool.save_results(save_location='results/myresults.csv')

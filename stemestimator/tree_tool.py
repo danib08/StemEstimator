@@ -51,7 +51,7 @@ class TreeTool:
         self.non_ground_cloud = pclpy.pcl.PointCloud.PointXYZ(non_ground)
         self.ground_cloud = pclpy.pcl.PointCloud.PointXYZ(ground)
 
-    def step_2_normal_filtering(self, search_radius, verticality_threshold, curvature_threshold, min_points):
+    def step_2_normal_filtering(self, search_radius, verticality_threshold, curvature_threshold, min_points=0):
         """Filters the non-ground points based on their normals, removing vertical and curved points.
 
         :param search_radius: Radius used for neighborhood search to calculate normals
@@ -94,6 +94,21 @@ class TreeTool:
         self.filtered_points = pclpy.pcl.PointCloud.PointXYZ(only_horizontal_points) # Trunk points
         self.filtered_normals = only_horizontal_normals
 
+    def step_3_euclidean_clustering(self, tolerance, min_cluster_size, max_cluster_size):
+        """Clusters the normal-filtered points using euclidean distance 
+        and assigns them to attribute cluster_list.
+
+        :param tolerance: The tolerance used for clustering.
+        :type tolerance: float
+        :param min_cluster_size: The minimum number of points required for a cluster.
+        :type min_cluster_size: int
+        :param max_cluster_size: The maximum number of points allowed for a cluster.
+        :type max_cluster_size: int
+        :return: None
+        """
+        self.cluster_list = seg_tree.euclidean_cluster_extract(self.filtered_points.xyz, 
+                                                               tolerance, min_cluster_size, max_cluster_size)
+
     def set_point_cloud(self, point_cloud):
         """
         Resets the point cloud that treetool will process
@@ -115,30 +130,6 @@ class TreeTool:
                 self.point_cloud = pclpy.pcl.PointCloud.PointXYZ(point_cloud)
             else:
                 self.point_cloud = point_cloud
-
-    def step_3_euclidean_clustering(self, tolerance=0.1, min_cluster_size=40, max_cluster_size=6000000):
-        """
-        Clusters filtered_points with euclidean clustering and assigns them to attribute cluster_list
-
-        Args:
-            tolerance : float
-                Maximum distance a point can be from a cluster for that point to be included in the cluster.
-
-            min_cluster_size: int
-                Minimum number of points a cluster must have to not be discarded
-
-            max_cluster_size: int
-                Maximum number of points a cluster must have to not be discarded
-
-        Returns:
-            None
-        """
-        self.cluster_list = seg_tree.euclidean_cluster_extract(
-            self.filtered_points.xyz,
-            tolerance=tolerance,
-            min_cluster_size=min_cluster_size,
-            max_cluster_size=max_cluster_size,
-        )
 
     def step_4_group_stems(self, max_distance=0.4):
         """
@@ -368,78 +359,6 @@ class TreeTool:
                 i["ellipse_diameter"] = None
                 i["final_diameter"] = None
                 i['vis_cyl'] = None
-
-    def full_process(
-        self,
-        search_radius=0.1,
-        verticality_threshold=0.06,
-        curvature_threshold=0.1,
-        tolerance=0.1,
-        min_cluster_size=40,
-        max_cluster_size=6000000,
-        max_distance=0.4,
-        lowstems_height=5,
-        cutstems_height=5,
-        searchRadius_cylinder=0.1,
-    ):
-        """
-        Clusters filtered_points with euclidean clustering and assigns them to attribute cluster_list
-
-        Args:
-            search_radius : float
-                Maximum distance of the points to a sample point that will be used to approximate a the sample point's normal
-
-            verticality_threshold: float
-                Threshold in radians for filtering the verticality of each point, we determine obtaining the dot product of each points normal by a vertical vector [0,0,1]
-
-            curvature_threshold: float
-                Threshold [0-1] for filtering the curvature of each point, the curvature is given by lambda_0/(lambda_0 + lambda_1 + lambda_2) where lambda_j is the
-                j-th eigenvalue of the covariance matrix of radius of points around each query point and lambda_0 < lambda_1 < lambda_2
-
-            tolerance : float
-                Maximum distance a point can be from a cluster for that point to be included in the cluster.
-
-            min_cluster_size: int
-                Minimum number of points a cluster must have to not be discarded
-
-            max_cluster_size: int
-                Maximum number of points a cluster must have to not be discarded
-
-            max_distance : float
-                Maximum distance a point can be from the line formed by the first principal vector of another cluster parting from the centroid of that cluster
-
-            lowstems_height: int
-                Minimum number of points a cluster must have to not be discarded
-
-            cutstems_height: int
-                Maximum number of points a cluster must have to not be discarded
-
-            searchRadius_cylinder : float
-                Maximum distance of the points to a sample point that will be used to approximate a the sample point's normal
-
-
-        Returns:
-            None
-                minimum number of points a cluster must have to not be discarded
-
-        """
-        print("step_1_Remove_Floor")
-        self.step_1_remove_ground()
-        print("step_2_normal_filtering")
-        self.step_2_normal_filtering(
-            search_radius, verticality_threshold, curvature_threshold
-        )
-        print("step_3_euclidean_clustering")
-        self.step_3_euclidean_clustering(tolerance, min_cluster_size, max_cluster_size)
-        print("step_4_Group_Stems")
-        self.step_4_group_stems(max_distance)
-        print("step_5_Get_Ground_Level_Trees")
-        self.step_5_get_ground_level_trees(lowstems_height, cutstems_height)
-        print("step_6_Get_Cylinder_Tree_Models")
-        self.step_6_get_cylinder_tree_models(searchRadius_cylinder)
-        print("step_7_Ellipse_fit")
-        self.step_7_ellipse_fit()
-        print("Done")
 
     def save_results(self, save_location="results/myresults.csv"):
         """
