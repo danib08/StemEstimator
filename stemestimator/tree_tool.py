@@ -51,8 +51,7 @@ class TreeTool:
         self.non_ground_cloud = pclpy.pcl.PointCloud.PointXYZ(non_ground)
         self.ground_cloud = pclpy.pcl.PointCloud.PointXYZ(ground)
 
-    def step_2_normal_filtering(self, search_radius=0.08, verticality_threshold=0.08, 
-                                curvature_threshold=0.12, min_points=0):
+    def step_2_normal_filtering(self, search_radius, verticality_threshold, curvature_threshold, min_points):
         """Filters the non-ground points based on their normals, removing vertical and curved points.
 
         :param search_radius: Radius used for neighborhood search to calculate normals
@@ -117,9 +116,7 @@ class TreeTool:
             else:
                 self.point_cloud = point_cloud
 
-    def step_3_euclidean_clustering(
-        self, tolerance=0.1, min_cluster_size=40, max_cluster_size=6000000
-    ):
+    def step_3_euclidean_clustering(self, tolerance=0.1, min_cluster_size=40, max_cluster_size=6000000):
         """
         Clusters filtered_points with euclidean clustering and assigns them to attribute cluster_list
 

@@ -75,13 +75,11 @@ class PointCloudManager:
             utils.open_3d_paint([self.tree_tool.filtered_points.xyz, self.tree_tool.filtered_points.xyz +
                             self.tree_tool.filtered_normals * 0.05, self.tree_tool.filtered_points.xyz +
                             self.tree_tool.filtered_normals * 0.1], reduce_for_vis=True, voxel_size=0.1)
-
     """
     def clustering(self, show=False):
         self.tree_tool.step_3_euclidean_clustering(tolerance=0.2, min_cluster_size=40, max_cluster_size=6000000)
         if show:
             utils.open3dpaint(self.tree_tool.cluster_list, reduce_for_vis=True, voxel_size=0.1)
-
     def group_stems(self, show=False):
         self.tree_tool.step_4_group_stems(max_distance=0.4)
 

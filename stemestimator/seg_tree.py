@@ -2,7 +2,7 @@ import pclpy
 import numpy as np
 import open3d as o3d
 
-def voxelize(points, voxel_size=0.1, use_o3d=False):
+def voxelize(points, voxel_size, use_o3d=False):
     """Uses voxel grid filtering to downsample a point cloud.
 
     :param points: The point cloud to be downsampled.
@@ -100,7 +100,7 @@ def radius_outlier_removal(points, min_n=6, radius=0.4, organized=True):
     ror_filter.filter(filtered_point_cloud)
     return filtered_point_cloud.xyz
 
-def extract_normals(points, search_radius=0.1):
+def extract_normals(points, search_radius):
     """Estimates the normals of a point cloud using OpenMP approach.
 
     :param points: The point cloud.
@@ -122,9 +122,7 @@ def extract_normals(points, search_radius=0.1):
     return normals
 
 
-def euclidean_cluster_extract(
-    points, tolerance=2, min_cluster_size=20, max_cluster_size=25000
-):
+def euclidean_cluster_extract(points, tolerance, min_cluster_size, max_cluster_size):
     """
     Takes a point cloud and clusters the points with euclidean clustering
 
