@@ -85,6 +85,7 @@ class App(tk.Tk):
         self.manager.remove_ground(show=True)
         self.manager.normal_filtering(show=True)
         self.manager.clustering(show=True)
+        self.manager.group_stems(show=True)
 
 if __name__ == "__main__":
     width, height = 800, 600

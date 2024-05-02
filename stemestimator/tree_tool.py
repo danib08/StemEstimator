@@ -108,6 +108,53 @@ class TreeTool:
         """
         self.cluster_list = seg_tree.euclidean_cluster_extract(self.filtered_points.xyz, 
                                                                tolerance, min_cluster_size, max_cluster_size)
+        
+    def step_4_group_stems(self, max_distance=0.4):
+        """Groups the clusters of points into stems based on their centroids and principal directions.
+
+        :param max_distance: The maximum distance allowed between a point and the line formed by 
+        the first principal vector of another cluster.
+        :type max_distance: float
+        :return: None
+        """
+        stem_groups = []
+        for cluster in self.cluster_list:
+            centroid = np.mean(cluster, axis=0)
+            vectors, values = utils.get_principal_vectors(cluster - centroid)
+            # Straightness ratio gives an indication of how aligned the points are along
+            # the principal direction defined by the largest eigenvalue.
+            straightness = values[0] / (values[0] + values[1] + values[2])
+
+            clusters_dict = {
+                "cloud": cluster,
+                "straightness": straightness,
+                "centroid": centroid,
+                "principal_vectors": vectors
+            }
+            stem_groups.append(clusters_dict)
+
+        # For each cluster, test if its centroid is near the line formed by the first principal vector 
+        # of another cluster parting from the centroid of that cluster. If so, join the two clusters.
+        temp_stems = [i["cloud"] for i in stem_groups]
+        num_clusters = len(temp_stems)
+
+        for tree1 in reversed(range(0, num_clusters)):
+            for tree2 in reversed(range(0, tree1)):
+                centroid1 = stem_groups[tree1]["centroid"]
+                centroid2 = stem_groups[tree2]["centroid"]
+
+                if np.linalg.norm(centroid1[:2] - centroid2[:2]) < 2:
+                    vector1 = stem_groups[tree1]["principal_vectors"][0]
+                    vector2 = stem_groups[tree2]["principal_vectors"][0]
+                    dist1 = utils.distance_point_to_line(centroid2, vector1 + centroid1, centroid1)
+                    dist2 = utils.distance_point_to_line(centroid1, vector2 + centroid2, centroid2)
+                    
+                    if (dist1 < max_distance) | (dist2 < max_distance):
+                        temp_stems[tree2] = np.vstack([temp_stems[tree2], temp_stems.pop(tree1)])
+                        break
+
+        self.stem_groups = stem_groups
+        self.complete_stems = temp_stems
 
     def set_point_cloud(self, point_cloud):
         """
@@ -130,53 +177,6 @@ class TreeTool:
                 self.point_cloud = pclpy.pcl.PointCloud.PointXYZ(point_cloud)
             else:
                 self.point_cloud = point_cloud
-
-    def step_4_group_stems(self, max_distance=0.4):
-        """
-        For each cluster in attribute cluster_list, test if its centroid is near the line formed by the first principal vector of another cluster parting from the centroid of that cluster
-        and if so, join the two clusters
-
-        Args:
-            max_distance : float
-                Maximum distance a point can be from the line formed by the first principal vector of another cluster parting from the centroid of that cluster
-
-        Returns:
-            None
-        """
-        # Get required info from clusters
-        stem_groups = []
-        for n, p in enumerate(self.cluster_list):
-            Centroid = np.mean(p, axis=0)
-            vT, S = utils.getPrincipalVectors(p - Centroid)
-            straightness = S[0] / (S[0] + S[1] + S[2])
-
-            clusters_dict = {}
-            clusters_dict["cloud"] = p
-            clusters_dict["straightness"] = straightness
-            clusters_dict["center"] = Centroid
-            clusters_dict["direction"] = vT
-            stem_groups.append(clusters_dict)
-
-        # For each cluster, test if its centroid is near the line formed by the first principal vector of another cluster parting from the centroid of that cluster
-        # if so, join the two clusters
-        temp_stems = [i["cloud"] for i in stem_groups]
-        for treenumber1 in reversed(range(0, len(temp_stems))):
-            for treenumber2 in reversed(range(0, treenumber1)):
-                center1 = stem_groups[treenumber1]["center"]
-                center2 = stem_groups[treenumber2]["center"]
-                if np.linalg.norm(center1[:2]-center2[:2]) < 2:
-                    vector1 = stem_groups[treenumber1]["direction"][0]
-                    vector2 = stem_groups[treenumber2]["direction"][0]
-                    dist1 = utils.DistPoint2Line(center2, vector1 + center1, center1)
-                    dist2 = utils.DistPoint2Line(center1, vector2 + center2, center2)
-                    if (dist1 < max_distance) | (dist2 < max_distance):
-                        temp_stems[treenumber2] = np.vstack(
-                            [temp_stems[treenumber2], temp_stems.pop(treenumber1)]
-                        )
-                        break
-
-        self.complete_Stems = temp_stems
-        self.stem_groups = stem_groups
 
     def step_5_get_ground_level_trees(
         self, lowstems_height=5, cutstems_height=5, use_sampling=False, dont_cut=False,
@@ -214,7 +214,7 @@ class TreeTool:
         # Obtain a ground point for each stem by taking the XY component of the centroid
         # and obtaining the coresponding Z coordinate from our quadratic ground model
         self.stems_with_ground = []
-        for i in self.complete_Stems:
+        for i in self.complete_stems:
             center = np.mean(i, 0)
             X, Y = center[:2]
             if not use_sampling:

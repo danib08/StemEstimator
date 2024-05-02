@@ -5,126 +5,6 @@ import numpy as np
 from matplotlib import cm
 import matplotlib.pyplot as plt
 
-def rotation_matrix_from_vectors(vector1, vector2):
-    """
-        Finds a rotation matrix that can rotate vector1 to align with vector 2
-
-        Args:
-            vector1: np.narray (3)
-                Vector we would apply the rotation to
-        
-            vector2: np.narray (3)
-                Vector that will be aligned to
-
-        Returns:
-            rotation_matrix: np.narray (3,3)
-                Rotation matrix that when applied to vector1 will turn it to the same direction as vector2
-        """
-    if all(np.abs(vector1)==np.abs(vector2)):
-        return np.eye(3)
-    a, b = (vector1 / np.linalg.norm(vector1)).reshape(3), (vector2 / np.linalg.norm(vector2)).reshape(3)
-    v = np.cross(a, b)
-    c = np.dot(a, b)
-    s = np.linalg.norm(v)
-    matrix = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
-    rotation_matrix = np.eye(3) + matrix + matrix.dot(matrix) * ((1 - c) / (s ** 2))
-    return rotation_matrix
-
-def angle_between_vectors(vector1,vector2):
-    """
-        Finds the angle between 2 vectors
-
-        Args:
-            vec1: np.narray (3)
-                First vector to measure angle from
-        
-            vec2: np.narray (3)
-                Second vector to measure angle to
-
-        Returns:
-            None
-        """
-    value = np.sum(np.multiply(vector1, vector2)) / (np.linalg.norm(vector1) * np.linalg.norm(vector2))
-    if (value<-1) | (value>1):
-        value = np.sign(value)
-    angle = np.arccos(value)
-    return angle
-
-def makecylinder(model=[0,0,0,1,0,0,1],height = 1,density=10):
-    """
-        Makes a point cloud of a cylinder given a (7) parameter cylinder model and a length and density
-
-        Args:
-            model: np.narray (7)
-                7 parameter cylinder model
-
-            height: float
-                Desired height of the generated cylinder
-
-            density: int
-                Desired density of the generated cylinder, 
-                this density is determines the amount of points on each ring that composes the cylinder and on how many rings the cylinder will have
-
-        Returns:
-            rotated_cylinder: np.narray (n,3)
-                3d point cloud of the desired cylinder
-        """
-    # extract info from cylinder model
-    radius = model[6]
-    X,Y,Z = model[:3]
-    # get 3d points to make an upright cylinder centered to the origin
-    n = np.arange(0,360,int(360/density))
-    height = np.arange(0,height,height/density)
-    n = np.deg2rad(n)
-    x,z = np.meshgrid(n,height)
-    x = x.flatten()
-    z = z.flatten()
-    cyl = np.vstack([np.cos(x)*radius,np.sin(x)*radius,z]).T
-    # rotate and translate the cylinder to fit the model
-    rotation = rotation_matrix_from_vectors([0,0,1],model[3:6])
-    rotated_cylinder = np.matmul(rotation,cyl.T).T + np.array([X,Y,Z])
-    return rotated_cylinder   
-
-def DistPoint2Line(point,line_point1, line_point2=np.array([0,0,0])):
-    """
-        Get minimum distance from a point to a line composed by 2 points
-
-        Args:
-            point: np.narray (3)
-                XYZ coordinates of the 3d point
-            
-            line_point1: np.narray (3)
-                XYZ coordinates of the first 3d point that composes the line if line_point2 is not given, line_point2 defaults to 0,0,0
-
-            line_point2: np.narray (3)
-                XYZ coordinates of the second 3d point that composes the line, if not given defaults to 0,0,0
-
-        Returns:
-            distance: float
-                Shortest distance from point to the line composed by line_point1 line_point2
-        """
-    return np.linalg.norm(np.cross((point-line_point2),(point-line_point1)))/np.linalg.norm(line_point1 - line_point2)
-
-
-def getPrincipalVectors(A): #
-    """
-        Get principal vectors and values of a matrix centered around (0,0,0)
-
-        Args:
-            A: np.narray (n,m)
-                Matrix to extract principal vectors from
-
-        Returns:
-            Vectors: np.narray (m,m)
-                The principal vectors from A
-            Values: np.narray (m,m)
-                The principal values from A
-        """
-    VT=np.linalg.eig(np.matmul(A.T,A))
-    sort = sorted(zip(VT[0],VT[1].T.tolist()),reverse=True)
-    values,vectors = zip(*sort)
-    return vectors,values
-
 def open_3d_paint(nppoints, color_map='jet', reduce_for_vis=False, voxel_size=0.1, pointsize=0.1):
     """
     Opens an open3d visualizer and displays point clouds.
@@ -211,6 +91,118 @@ def convert_cloud(points):
     pcd = open3d.geometry.PointCloud()
     pcd.points = open3d.utility.Vector3dVector(points)
     return pcd
+
+def get_principal_vectors(A):
+    """Get the principal vectors and values of a matrix centered around (0,0,0)
+
+    :param A: The matrix to get the principal vectors and values from.
+    :type A: np.ndarray (n,m)
+    :return: The principal vectors and values in descending order.
+    :rtype: np.ndarray (n,m), np.ndarray (n,m)
+    """
+    eigenvalues, eigenvectors = np.linalg.eig(np.matmul(A.T, A))
+    sorted_indices = np.argsort(eigenvalues)[::-1]
+    values = eigenvalues[sorted_indices]
+    vectors = eigenvectors[:, sorted_indices]
+    return vectors, values
+
+def distance_point_to_line(point, line_point1, line_point2=np.array([0,0,0])):
+    """Get the distance from a point to a line.
+
+    :param point: The point to measure the distance from.
+    :type point: np.ndarray (3)
+    :param line_point1: The first point of the line.
+    :type line_point1: np.ndarray (3)
+    :param line_point2: The second point of the line.
+    :type line_point2: np.ndarray (3)
+    :return: The distance from the point to the line.
+    :rtype: float
+    """
+    vector1 = point - line_point1
+    vector2 = point - line_point2
+    distance = np.linalg.norm(np.cross(vector2, vector1))
+    normalized = distance / np.linalg.norm(line_point1 - line_point2)
+    return normalized
+
+def rotation_matrix_from_vectors(vector1, vector2):
+    """
+        Finds a rotation matrix that can rotate vector1 to align with vector 2
+
+        Args:
+            vector1: np.narray (3)
+                Vector we would apply the rotation to
+        
+            vector2: np.narray (3)
+                Vector that will be aligned to
+
+        Returns:
+            rotation_matrix: np.narray (3,3)
+                Rotation matrix that when applied to vector1 will turn it to the same direction as vector2
+        """
+    if all(np.abs(vector1)==np.abs(vector2)):
+        return np.eye(3)
+    a, b = (vector1 / np.linalg.norm(vector1)).reshape(3), (vector2 / np.linalg.norm(vector2)).reshape(3)
+    v = np.cross(a, b)
+    c = np.dot(a, b)
+    s = np.linalg.norm(v)
+    matrix = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
+    rotation_matrix = np.eye(3) + matrix + matrix.dot(matrix) * ((1 - c) / (s ** 2))
+    return rotation_matrix
+
+def angle_between_vectors(vector1,vector2):
+    """
+        Finds the angle between 2 vectors
+
+        Args:
+            vec1: np.narray (3)
+                First vector to measure angle from
+        
+            vec2: np.narray (3)
+                Second vector to measure angle to
+
+        Returns:
+            None
+        """
+    value = np.sum(np.multiply(vector1, vector2)) / (np.linalg.norm(vector1) * np.linalg.norm(vector2))
+    if (value<-1) | (value>1):
+        value = np.sign(value)
+    angle = np.arccos(value)
+    return angle
+
+def makecylinder(model=[0,0,0,1,0,0,1],height = 1,density=10):
+    """
+        Makes a point cloud of a cylinder given a (7) parameter cylinder model and a length and density
+
+        Args:
+            model: np.narray (7)
+                7 parameter cylinder model
+
+            height: float
+                Desired height of the generated cylinder
+
+            density: int
+                Desired density of the generated cylinder, 
+                this density is determines the amount of points on each ring that composes the cylinder and on how many rings the cylinder will have
+
+        Returns:
+            rotated_cylinder: np.narray (n,3)
+                3d point cloud of the desired cylinder
+        """
+    # extract info from cylinder model
+    radius = model[6]
+    X,Y,Z = model[:3]
+    # get 3d points to make an upright cylinder centered to the origin
+    n = np.arange(0,360,int(360/density))
+    height = np.arange(0,height,height/density)
+    n = np.deg2rad(n)
+    x,z = np.meshgrid(n,height)
+    x = x.flatten()
+    z = z.flatten()
+    cyl = np.vstack([np.cos(x)*radius,np.sin(x)*radius,z]).T
+    # rotate and translate the cylinder to fit the model
+    rotation = rotation_matrix_from_vectors([0,0,1],model[3:6])
+    rotated_cylinder = np.matmul(rotation,cyl.T).T + np.array([X,Y,Z])
+    return rotated_cylinder   
 
 def plt3dpaint(nppoints, color_map = 'jet', reduce_for_vis = True, voxel_size = 0.2, pointsize = 0.1, subplots = 5):
     """
