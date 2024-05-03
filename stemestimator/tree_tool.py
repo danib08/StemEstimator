@@ -146,8 +146,8 @@ class TreeTool:
                 if np.linalg.norm(centroid1[:2] - centroid2[:2]) < 2:
                     vector1 = stem_groups[tree1]["principal_vectors"][0]
                     vector2 = stem_groups[tree2]["principal_vectors"][0]
-                    dist1 = utils.DistPoint2Line(centroid2, vector1 + centroid1, centroid1)
-                    dist2 = utils.DistPoint2Line(centroid1, vector2 + centroid2, centroid2)
+                    dist1 = utils.distance_point_to_line(centroid2, vector1 + centroid1, centroid1)
+                    dist2 = utils.distance_point_to_line(centroid1, vector2 + centroid2, centroid2)
                     
                     if (dist1 < max_distance) | (dist2 < max_distance):
                         temp_stems[tree2] = np.vstack([temp_stems[tree2], temp_stems.pop(tree1)])
