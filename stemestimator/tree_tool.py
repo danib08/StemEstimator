@@ -156,6 +156,42 @@ class TreeTool:
         self.stem_groups = stem_groups
         self.complete_stems = temp_stems
 
+    def step_5_get_ground_level_trees(self, lowstems_height=5):
+        """Filters stems to only keep those near the ground and crops them up to a certain height.
+
+        :param lowstems_height: The height threshold for low stems.
+        :type lowstems_height: int
+        :return: None
+        """
+        # Generate a bivariate quadratic equation to model the ground
+        ground_points = self.ground_cloud.xyz
+        coefficient_matrix = np.c_[
+            np.ones(ground_points.shape[0]),
+            ground_points[:, :2],
+            np.prod(ground_points[:, :2], axis=1),
+            ground_points[:, :2] ** 2,
+        ]
+        self.ground_model_c, _, _, _ = np.linalg.lstsq(coefficient_matrix, ground_points[:, 2], rcond=None)
+
+        # Obtains a ground point for each stem by taking the XY component of the centroid
+        # and obtaining the coresponding Z coordinate from the quadratic ground model
+        self.stems_with_ground = []
+        for i in self.complete_stems:
+            centroid = np.mean(i, 0)
+            X, Y = centroid[:2]
+            Z = np.dot(
+                    np.c_[np.ones(X.shape), X, Y, X * Y, X**2, Y**2],
+                    self.ground_model_c,)
+
+            self.stems_with_ground.append([i, [X, Y, Z[0]]])
+
+        # Filter stems that do not have points below our lowstems_height threshold
+        self.low_stems = [
+            i
+            for i in self.stems_with_ground
+            if np.min(i[0], axis=0)[2] < (lowstems_height + i[1][2])
+        ]
+
     def set_point_cloud(self, point_cloud):
         """
         Resets the point cloud that treetool will process
