@@ -186,11 +186,61 @@ class TreeTool:
             self.stems_with_ground.append([i, [X, Y, Z[0]]])
 
         # Filter stems that do not have points below our lowstems_height threshold
-        self.low_stems = [
+        low_stems = [
             i
             for i in self.stems_with_ground
             if np.min(i[0], axis=0)[2] < (lowstems_height + i[1][2])
         ]
+        
+        self.low_stems = low_stems
+        self.low_stems_visualize = [i[0] for i in low_stems]
+
+    def step_6_get_cylinder_tree_models(self, search_radius=0.1, distance=0.08):
+        """Extracts cylinder models for each stem using RANSAC.
+
+        :param search_radius: The radius used for neighborhood search to calculate normals.
+        :type search_radius: float
+        :param distance: The distance threshold for RANSAC.
+        :type distance: float
+        :return: None
+        """
+        final_stems = []
+        visualization_cylinders = []
+
+        for stem in self.low_stems:
+            # Segment to cylinders
+            stem_points = stem[0]
+            indices, model = seg_tree.cylinder_segmentation(
+                stem_points,
+                max_iter=10000,
+                search_radius=search_radius,
+                normal_weight=0.01,
+                max_distance=distance,
+                min_radius=0,
+                max_radius=0.2,
+            )
+            # If the model has more than 10 points
+            if len(indices) > 10:
+                # If the model finds an upright cylinder
+                if (
+                    abs(np.dot(model[3:6], [0, 0, 1]) / np.linalg.norm(model[3:6]))
+                    > 0.5
+                ):
+                    # Get centroid
+                    model = np.array(model)
+                    Z = 1.3 + stem[1][2]
+                    Y = model[1] + model[4] * (Z - model[2]) / model[5]
+                    X = model[0] + model[3] * (Z - model[2]) / model[5]
+                    model[0:3] = np.array([X, Y, Z])
+                    # make sure the vector is pointing upward
+                    model[3:6] = utils.similarize(model[3:6], [0, 0, 1])
+                    final_stems.append({"tree": stem_points[indices], "model": model, 'ground': stem[1][2]})
+                    visualization_cylinders.append(
+                        utils.makecylinder(model=model, height=7, density=60)
+                    )
+
+        self.finalstems = final_stems
+        self.visualization_cylinders = visualization_cylinders
 
     def set_point_cloud(self, point_cloud):
         """
@@ -213,120 +263,6 @@ class TreeTool:
                 self.point_cloud = pclpy.pcl.PointCloud.PointXYZ(point_cloud)
             else:
                 self.point_cloud = point_cloud
-
-    def step_5_get_ground_level_trees(self, lowstems_height=5, cutstems_height=5, cut_stems=True):
-        """Filters stems to only keep those near the ground and crops them up to a certain height.
-
-        :param lowstems_height: The height threshold for low stems.
-        :type lowstems_height: int
-        :param cutstems_height: The height threshold for cutting stems.
-        :type cutstems_height: int
-        :param cut_stems: Whether to cut the stems.
-        :type cut_stems: bool
-        :return: None
-        """
-        # Generate a bivariate quadratic equation to model the ground
-        ground_points = self.ground_cloud.xyz
-        coefficient_matrix = np.c_[
-            np.ones(ground_points.shape[0]),
-            ground_points[:, :2],
-            np.prod(ground_points[:, :2], axis=1),
-            ground_points[:, :2] ** 2,
-        ]
-        self.ground_model_c, _, _, _ = np.linalg.lstsq(coefficient_matrix, ground_points[:, 2], rcond=None)
-
-        # Obtains a ground point for each stem by taking the XY component of the centroid
-        # and obtaining the coresponding Z coordinate from the quadratic ground model
-        self.stems_with_ground = []
-        for i in self.complete_stems:
-            centroid = np.mean(i, 0)
-            X, Y = centroid[:2]
-            Z = np.dot(
-                    np.c_[np.ones(X.shape), X, Y, X * Y, X**2, Y**2],
-                    self.ground_model_c,)
-
-            self.stems_with_ground.append([i, [X, Y, Z[0]]])
-
-        # Filter stems that do not have points below our lowstems_height threshold
-        low_stems = [
-            i
-            for i in self.stems_with_ground
-            if np.min(i[0], axis=0)[2] < (lowstems_height + i[1][2])
-        ]
-
-        # Crop points above cutstems_height threshold
-        if cut_stems:
-            cut_stems = [
-                [i[0][i[0][:, 2] < (cutstems_height + i[1][2])], i[1]] for i in low_stems
-            ]
-        else:
-            cut_stems = low_stems
-
-        self.cut_stems = cut_stems
-        self.low_stems = [i[0] for i in cut_stems]
-
-    def step_6_get_cylinder_tree_models(
-        self, search_radius=0.1, distance=0.08, stick=False
-    ):
-        """
-        For each cut stem we use ransac to extract a cylinder model
-
-        Args:
-            search_radius : float
-                Maximum distance of the points to a sample point that will be used to approximate a the sample point's normal
-
-        Returns:
-            None
-        """
-        final_stems = []
-        visualization_cylinders = []
-        for p in self.cut_stems:
-            # Segment to cylinders
-            stem_points = p[0]
-            if stick:
-                indices, model = seg_tree.segment_normals(
-                    stem_points,
-                    search_radius=search_radius,
-                    model=pclpy.pcl.sample_consensus.SACMODEL_STICK,
-                    method=pclpy.pcl.sample_consensus.SAC_RANSAC,
-                    normalweight=0.01,
-                    miter=10000,
-                    distance=0.4,
-                    rlim=[0, 0.3],
-                )
-            else:
-                indices, model = seg_tree.segment_normals(
-                    stem_points,
-                    search_radius=search_radius,
-                    model=pclpy.pcl.sample_consensus.SACMODEL_CYLINDER,
-                    method=pclpy.pcl.sample_consensus.SAC_RANSAC,
-                    normalweight=0.01,
-                    miter=10000,
-                    distance=distance,
-                    rlim=[0, 0.2],
-                )
-            # If the model has more than 10 points
-            if len(indices) > 10:
-                # If the model finds an upright cylinder
-                if (
-                    abs(np.dot(model[3:6], [0, 0, 1]) / np.linalg.norm(model[3:6]))
-                    > 0.5
-                ):
-                    # Get centroid
-                    model = np.array(model)
-                    Z = 1.3 + p[1][2]
-                    Y = model[1] + model[4] * (Z - model[2]) / model[5]
-                    X = model[0] + model[3] * (Z - model[2]) / model[5]
-                    model[0:3] = np.array([X, Y, Z])
-                    # make sure the vector is pointing upward
-                    model[3:6] = utils.similarize(model[3:6], [0, 0, 1])
-                    final_stems.append({"tree": stem_points[indices], "model": model, 'ground': p[1][2]})
-                    visualization_cylinders.append(
-                        utils.makecylinder(model=model, height=7, density=60)
-                    )
-
-        self.finalstems = final_stems
-        self.visualization_cylinders = visualization_cylinders
 
     def step_7_ellipse_fit(self, height_ll=-1,height_ul=-1):
         """

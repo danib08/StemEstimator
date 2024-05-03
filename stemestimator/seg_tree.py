@@ -152,6 +152,52 @@ def euclidean_cluster_extract(points, tolerance, min_cluster_size, max_cluster_s
     cluster_list = [points_to_cluster.xyz[cluster.indices] for cluster in cluster_indices]
     return cluster_list
 
+def cylinder_segmentation(points, max_iter=1000, search_radius=20, normal_weight=0.0001, 
+                    max_distance=0.5, min_radius=0, max_radius=0.5):
+    """Segments a point cloud into cylinder models using normals.
+
+    :param points: The point cloud to be segmented.
+    :type points: np.ndarray (n,3)
+    :param max_iter: Maximum iterations for RANSAC.
+    :type max_iter: int
+    :param search_radius: The radius used to estimate the normals.
+    :type search_radius: float
+    :param normal_weight: The normal distance weight for RANSAC.
+    :type normal_weight: float
+    :param max_distance: Maximum distance a point can be from the model.
+    :type max_distance: float
+    :param min_radius: Minimum radius of the cylinder model.
+    :type min_radius: float
+    :param max_radius: Maximum radius of the cylinder model.
+    :type max_radius: float
+    :return: The indices of the points that fit the model and the model coefficients.
+    :rtype: np.ndarray (n), np.ndarray (n)
+    """
+    point_cloud = pclpy.pcl.PointCloud.PointXYZ(points)
+    point_cloud_normals = extract_normals(points, search_radius)
+
+    method = pclpy.pcl.sample_consensus.SAC_RANSAC
+    model = pclpy.pcl.sample_consensus.SACMODEL_CYLINDER
+    segmenter = pclpy.pcl.segmentation.SACSegmentationFromNormals.PointXYZ_Normal()
+
+    segmenter.setInputCloud(point_cloud)
+    segmenter.setInputNormals(point_cloud_normals)
+
+    segmenter.setModelType(model)
+    segmenter.setMethodType(method)
+    segmenter.setMaxIterations(max_iter)
+    segmenter.setDistanceFromOrigin(0.4)
+    segmenter.setOptimizeCoefficients(True)
+    segmenter.setDistanceThreshold(max_distance)
+    segmenter.setRadiusLimits(min_radius, max_radius)
+    segmenter.setNormalDistanceWeight(normal_weight)
+
+    point_indices = pclpy.pcl.PointIndices()
+    coefficients = pclpy.pcl.ModelCoefficients()
+
+    segmenter.segment(point_indices, coefficients)
+    return point_indices.indices, coefficients.values
+
 def region_growing(
     Points, ksearch=30, minc=20, maxc=100000, nn=30, smoothness=30.0, curvature=1.0
 ):
@@ -266,75 +312,6 @@ def segment(
     segmenter.segment(pI, Mc)
     return pI.indices, Mc.values
 
-
-def segment_normals(
-    points,
-    search_radius=20,
-    model=pclpy.pcl.sample_consensus.SACMODEL_LINE,
-    method=pclpy.pcl.sample_consensus.SAC_RANSAC,
-    normalweight=0.0001,
-    miter=1000,
-    distance=0.5,
-    rlim=[0, 0.5],
-):
-    """
-    Takes a point cloud and removes points that have less than minn neigbors in a certain radius
-
-    Args:
-        points : np.ndarray
-            (n,3) point cloud
-
-        search_radius: float
-            Radius of the sphere a point can be in to be considered in the calculation of a sample points' normal
-
-        model: int
-            A pclpy.pcl.sample_consensus.MODEL value representing a ransac model
-
-        method: float
-            pclpy.pcl.sample_consensus.METHOD to use
-
-        normalweight:
-            Normal weight for ransacfromnormals
-
-        miter: bool
-            Maximum iterations for ransac
-
-        distance:
-            Maximum distance a point can be from the model
-
-        rlim:
-            Radius limit for cylinder model
-
-
-    Returns:
-        pI.indices: np.narray (n)
-            Indices of points that fit the model
-
-        Mc.values: np.narray (n)
-            Model coefficients
-
-    """
-    pointcloud_normals = extract_normals(points, search_radius)
-
-    pointcloud = pclpy.pcl.PointCloud.PointXYZ(points)
-    segmenter = pclpy.pcl.segmentation.SACSegmentationFromNormals.PointXYZ_Normal()
-
-    segmenter.setInputCloud(pointcloud)
-    segmenter.setInputNormals(pointcloud_normals)
-    segmenter.setDistanceThreshold(distance)
-    segmenter.setOptimizeCoefficients(True)
-    segmenter.setMethodType(method)
-    segmenter.setModelType(model)
-    segmenter.setMaxIterations(miter)
-    segmenter.setRadiusLimits(rlim[0], rlim[1])
-    segmenter.setDistanceFromOrigin(0.4)
-    segmenter.setNormalDistanceWeight(normalweight)
-    pI = pclpy.pcl.PointIndices()
-    Mc = pclpy.pcl.ModelCoefficients()
-    segmenter.segment(pI, Mc)
-    return pI.indices, Mc.values
-
-
 def findstemsLiDAR(pointsXYZ):
     """
     Takes a point cloud from a Cylindrical LiDAR and extract stems and their models
@@ -369,7 +346,7 @@ def findstemsLiDAR(pointsXYZ):
     stem_clouds = []
     for i in rg_clusters:
         for p in i:
-            indices, model = segment_normals(p)
+            indices, model = cylinder_segmentation(p)
             prop = len(p[indices]) / len(p)
             if (
                 len(indices) > 1

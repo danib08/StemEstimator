@@ -94,18 +94,18 @@ class PointCloudManager:
             utils.open_3d_paint(self.tree_tool.complete_stems, reduce_for_vis=True, voxel_size=0.1)
     
     def get_ground_level_trees(self, show=False):
-        self.tree_tool.step_5_get_ground_level_trees(lowstems_height=5, cutstems_height=5)
+        self.tree_tool.step_5_get_ground_level_trees(lowstems_height=5)
 
         if show:
-            utils.open_3d_paint(self.tree_tool.low_stems, reduce_for_vis=True, voxel_size=0.1)
-    """
+            utils.open_3d_paint(self.tree_tool.low_stems_visualize, reduce_for_vis=True, voxel_size=0.1)
+
     def get_cylinders(self, show=False):
         self.tree_tool.step_6_get_cylinder_tree_models(search_radius=0.1)
 
         if show:
             utils.open_3d_paint([i['tree'] for i in self.tree_tool.finalstems] +
                               self.tree_tool.visualization_cylinders, reduce_for_vis=True, voxel_size=0.1)
-            
+    """    
     def ellipse_fit(self):
         self.tree_tool.open_3d_paint()
 
