@@ -146,8 +146,8 @@ class TreeTool:
                 if np.linalg.norm(centroid1[:2] - centroid2[:2]) < 2:
                     vector1 = stem_groups[tree1]["principal_vectors"][0]
                     vector2 = stem_groups[tree2]["principal_vectors"][0]
-                    dist1 = utils.distance_point_to_line(centroid2, vector1 + centroid1, centroid1)
-                    dist2 = utils.distance_point_to_line(centroid1, vector2 + centroid2, centroid2)
+                    dist1 = utils.DistPoint2Line(centroid2, vector1 + centroid1, centroid1)
+                    dist2 = utils.DistPoint2Line(centroid1, vector2 + centroid2, centroid2)
                     
                     if (dist1 < max_distance) | (dist2 < max_distance):
                         temp_stems[tree2] = np.vstack([temp_stems[tree2], temp_stems.pop(tree1)])
@@ -178,60 +178,36 @@ class TreeTool:
             else:
                 self.point_cloud = point_cloud
 
-    def step_5_get_ground_level_trees(
-        self, lowstems_height=5, cutstems_height=5, use_sampling=False, dont_cut=False,
-    ):
-        """
-        Filters stems to only keep those near the ground and crops them up to a certain height
+    def step_5_get_ground_level_trees(self, lowstems_height=5, cutstems_height=5, cut_stems=True):
+        """Filters stems to only keep those near the ground and crops them up to a certain height.
 
-        Args:
-            lowstems_height: int
-                Minimum number of points a cluster must have to not be discarded
-
-            cutstems_height: int
-                Maximum number of points a cluster must have to not be discarded
-
-        Returns:
-            None
+        :param lowstems_height: The height threshold for low stems.
+        :type lowstems_height: int
+        :param cutstems_height: The height threshold for cutting stems.
+        :type cutstems_height: int
+        :param cut_stems: Whether to cut the stems.
+        :type cut_stems: bool
+        :return: None
         """
         # Generate a bivariate quadratic equation to model the ground
         ground_points = self.ground_cloud.xyz
-        if not use_sampling:
-            A = np.c_[
-                np.ones(ground_points.shape[0]),
-                ground_points[:, :2],
-                np.prod(ground_points[:, :2], axis=1),
-                ground_points[:, :2] ** 2,
-            ]
-            self.ground_model_c, _, _, _ = np.linalg.lstsq(
-                A, ground_points[:, 2], rcond=None
-            )
-        else:
-            sub_pcd = pclpy.pcl.PointCloud.PointXYZ()
-            cropfilter = pclpy.pcl.filters.CropBox.PointXYZ()
-            cropfilter.setInputCloud(self.ground_cloud)
+        coefficient_matrix = np.c_[
+            np.ones(ground_points.shape[0]),
+            ground_points[:, :2],
+            np.prod(ground_points[:, :2], axis=1),
+            ground_points[:, :2] ** 2,
+        ]
+        self.ground_model_c, _, _, _ = np.linalg.lstsq(coefficient_matrix, ground_points[:, 2], rcond=None)
 
-        # Obtain a ground point for each stem by taking the XY component of the centroid
-        # and obtaining the coresponding Z coordinate from our quadratic ground model
+        # Obtains a ground point for each stem by taking the XY component of the centroid
+        # and obtaining the coresponding Z coordinate from the quadratic ground model
         self.stems_with_ground = []
         for i in self.complete_stems:
-            center = np.mean(i, 0)
-            X, Y = center[:2]
-            if not use_sampling:
-                Z = np.dot(
+            centroid = np.mean(i, 0)
+            X, Y = centroid[:2]
+            Z = np.dot(
                     np.c_[np.ones(X.shape), X, Y, X * Y, X**2, Y**2],
-                    self.ground_model_c,
-                )
-            else:
-                _size = 0.5
-                while True:
-                    cropfilter.setMin(np.hstack([X - _size, Y - _size, -100, 1]))
-                    cropfilter.setMax(np.hstack([X + _size, Y + _size, 100, 1]))
-                    cropfilter.filter(sub_pcd)
-                    if len(sub_pcd.xyz) > 5:
-                        Z = [np.mean(sub_pcd.xyz[:,2])]
-                        break
-                    _size += 0.25
+                    self.ground_model_c,)
 
             self.stems_with_ground.append([i, [X, Y, Z[0]]])
 
@@ -241,8 +217,9 @@ class TreeTool:
             for i in self.stems_with_ground
             if np.min(i[0], axis=0)[2] < (lowstems_height + i[1][2])
         ]
+
         # Crop points above cutstems_height threshold
-        if not dont_cut:
+        if cut_stems:
             cut_stems = [
                 [i[0][i[0][:, 2] < (cutstems_height + i[1][2])], i[1]] for i in low_stems
             ]

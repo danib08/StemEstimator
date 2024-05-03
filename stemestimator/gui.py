@@ -86,6 +86,7 @@ class App(tk.Tk):
         self.manager.normal_filtering(show=True)
         self.manager.clustering(show=True)
         self.manager.group_stems(show=True)
+        self.manager.get_ground_level_trees(show=True)
 
 if __name__ == "__main__":
     width, height = 800, 600
