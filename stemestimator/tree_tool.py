@@ -207,10 +207,15 @@ class TreeTool:
         final_stems = []
         visualization_cylinders = []
 
+        """
+        NOTE: each stem is a list with two elements, the first element is the point cloud 
+        of the stem and the second element is the centroid of the stem.
+        [stem_points, [X, Y, Z]]
+        """
         for stem in self.low_stems:
-            # Segment to cylinders
+            # Segment to cylinder
             stem_points = stem[0]
-            indices, model = seg_tree.cylinder_segmentation(
+            indices, coefficients = seg_tree.cylinder_segmentation(
                 stem_points,
                 max_iter=10000,
                 search_radius=search_radius,
@@ -221,25 +226,32 @@ class TreeTool:
             )
             # If the model has more than 10 points
             if len(indices) > 10:
+                """
+                NOTE: the coefficients for the cylinder model are as follows:
+                [X, Y, Z, direction_vector_x, direction_vector_y, direction_vector_z, radius]
+                """
+                direction_vector = coefficients[3:6]
+                angle = utils.angle_between_vectors(direction_vector, [0, 0, 1])
+                cosine_angle = np.cos(angle)
+
                 # If the model finds an upright cylinder
-                if (
-                    abs(np.dot(model[3:6], [0, 0, 1]) / np.linalg.norm(model[3:6]))
-                    > 0.5
-                ):
-                    # Get centroid
-                    model = np.array(model)
-                    Z = 1.3 + stem[1][2]
-                    Y = model[1] + model[4] * (Z - model[2]) / model[5]
-                    X = model[0] + model[3] * (Z - model[2]) / model[5]
-                    model[0:3] = np.array([X, Y, Z])
-                    # make sure the vector is pointing upward
-                    model[3:6] = utils.similarize(model[3:6], [0, 0, 1])
-                    final_stems.append({"tree": stem_points[indices], "model": model, 'ground': stem[1][2]})
+                if (abs(cosine_angle) > 0.5):
+                    # Calculate centroid
+                    coefficients = np.array(coefficients)
+                    Z = stem[1][2] + 1.3
+                    Y = coefficients[4] * ((Z - coefficients[2]) / coefficients[5]) + coefficients[1]
+                    X = coefficients[3] * ((Z - coefficients[2]) / coefficients[5]) + coefficients[0]
+                    coefficients[0:3] = np.array([X, Y, Z])
+
+                    # Make sure the vector is pointing upwards
+                    coefficients[3:6] = utils.similarize(coefficients[3:6], [0, 0, 1])
+
+                    final_stems.append({"tree": stem_points[indices], "model": coefficients, 'ground': stem[1][2]})
                     visualization_cylinders.append(
-                        utils.makecylinder(model=model, height=7, density=60)
+                        utils.make_cylinder(model=coefficients, heights=7, density=60)
                     )
 
-        self.finalstems = final_stems
+        self.final_stems = final_stems
         self.visualization_cylinders = visualization_cylinders
 
     def set_point_cloud(self, point_cloud):
@@ -274,7 +286,7 @@ class TreeTool:
         Returns:
             None
         """
-        for i in self.finalstems:
+        for i in self.final_stems:
             # if the tree points has enough points to fit a ellipse
             if len(i["tree"]) > 5:
                 # find a matrix that rotates the stem to be colinear to the z axis
@@ -302,7 +314,7 @@ class TreeTool:
                 i["final_diameter"] = max(ellipse_diameter, cylinder_diameter)
                 n_model = i["model"]
                 n_model[6] = i["final_diameter"]
-                i['vis_cyl'] = utils.makecylinder(model=n_model, height=7, density=60)
+                i['vis_cyl'] = utils.make_cylinder(model=n_model, heights=7, density=60)
             else:
                 i["cylinder_diameter"] = None
                 i["ellipse_diameter"] = None
@@ -320,8 +332,8 @@ class TreeTool:
         Returns:
             None
         """
-        tree_model_info = [i["model"] for i in self.finalstems]
-        tree_diameter_info = [i["final_diameter"] for i in self.finalstems]
+        tree_model_info = [i["model"] for i in self.final_stems]
+        tree_diameter_info = [i["final_diameter"] for i in self.final_stems]
 
         data = {"X": [], "Y": [], "Z": [], "DBH": []}
         for i, j in zip(tree_model_info, tree_diameter_info):

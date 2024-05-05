@@ -154,7 +154,7 @@ def euclidean_cluster_extract(points, tolerance, min_cluster_size, max_cluster_s
 
 def cylinder_segmentation(points, max_iter=1000, search_radius=20, normal_weight=0.0001, 
                     max_distance=0.5, min_radius=0, max_radius=0.5):
-    """Segments a point cloud into cylinder models using normals.
+    """Segments a point cloud into cylinder models using normals and RANSAC.
 
     :param points: The point cloud to be segmented.
     :type points: np.ndarray (n,3)

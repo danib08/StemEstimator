@@ -112,6 +112,12 @@ class PointCloudManager:
             utils.open_3d_paint(self.tree_tool.low_stems_visualize, reduce_for_vis=True, voxel_size=0.1)
 
     def get_cylinders(self, show=False):
+        """Gets the cylinder tree models.
+
+        :param show: Whether to show the result in the Open3D viewer.
+        :type show: bool
+        :return: None
+        """
         self.tree_tool.step_6_get_cylinder_tree_models(search_radius=0.1)
 
         if show:

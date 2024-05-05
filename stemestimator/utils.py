@@ -145,86 +145,77 @@ def angle_between_vectors(vector1, vector2):
     return angle
 
 def similarize(test, target):
+    """Make two vectors point in the same direction.
+
+    :param test: The vector to be aligned.
+    :type test: np.ndarray (3)
+    :param target: The vector to align to.
+    :type target: np.ndarray (3)
+    :return: The aligned vector.
+    :rtype: np.ndarray (3)
     """
-        Test a vectors angle to another vector and mirror its direction if it is greater than pi/2
-
-        Args:
-            test: np.narray (3)
-                3d vector to test
-
-            target: np.narray (3)
-                3d vector to which test has to have an angle smaller than pi/2
-
-        Returns:
-            test: np.narray (3)
-                3d vectors whos angle is below pi/2 with respect to the target vector
-        """
     test = np.array(test)
-    assert len(test) == 3,'vector must be dim 3'
-    angle = angle_between_vectors(test,target)
+    target = np.array(target)
+    angle = angle_between_vectors(test, target)
+
     if angle > np.pi/2:
         test = -test
     return test
 
-def rotation_matrix_from_vectors(vector1, vector2):
+def make_cylinder(model, heights=1, density=10):
+    """Create a cylinder point cloud based on a model.
+
+    :param model: The model to create the cylinder from.
+    :type model: np.ndarray (7)
+    :param height: The height of the cylinder.
+    :type height: float
+    :param density: The density of the cylinder.
+    :type density: int
+    :return: The cylinder point cloud.
+    :rtype: np.ndarray (n,3)
     """
-        Finds a rotation matrix that can rotate vector1 to align with vector 2
+    radius = model[6]
+    X, Y, Z = model[:3]
+    direction_vector = model[3:6]
 
-        Args:
-            vector1: np.narray (3)
-                Vector we would apply the rotation to
-        
-            vector2: np.narray (3)
-                Vector that will be aligned to
+    # Get 3D points to make an upright cylinder centered to the origin
+    angles = np.arange(0, 360, int(360/density))
+    heights = np.arange(0, heights, heights/density)
+    angles = np.deg2rad(angles)
 
-        Returns:
-            rotation_matrix: np.narray (3,3)
-                Rotation matrix that when applied to vector1 will turn it to the same direction as vector2
-        """
-    if all(np.abs(vector1)==np.abs(vector2)):
+    x, z = np.meshgrid(angles, heights)
+    x = x.flatten()
+    z = z.flatten() 
+
+    cyl = np.vstack([np.cos(x)*radius, np.sin(x)*radius, z]).T
+    # Rotate and translate the cylinder to fit the model
+    rotation = rotation_matrix_from_vectors([0,0,1], direction_vector)
+    rotated_cylinder = np.matmul(rotation, cyl.T).T + np.array([X,Y,Z])
+    return rotated_cylinder   
+
+def rotation_matrix_from_vectors(vector1, vector2):
+    """Finds a rotation matrix that can rotate the first vector to align with second.
+    
+    :param vector1: The vector to be rotated.
+    :type vector1: np.ndarray (3)
+    :param vector2: The vector to align to.
+    :type vector2: np.ndarray (3)
+    :return: The rotation matrix.
+    :rtype: np.ndarray (3,3)
+    """
+    if all(np.abs(vector1) == np.abs(vector2)):
         return np.eye(3)
+    
+    # normalizing the vectors
     a, b = (vector1 / np.linalg.norm(vector1)).reshape(3), (vector2 / np.linalg.norm(vector2)).reshape(3)
+    
     v = np.cross(a, b)
     c = np.dot(a, b)
     s = np.linalg.norm(v)
+    
     matrix = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
     rotation_matrix = np.eye(3) + matrix + matrix.dot(matrix) * ((1 - c) / (s ** 2))
     return rotation_matrix
-
-def makecylinder(model=[0,0,0,1,0,0,1],height = 1,density=10):
-    """
-        Makes a point cloud of a cylinder given a (7) parameter cylinder model and a length and density
-
-        Args:
-            model: np.narray (7)
-                7 parameter cylinder model
-
-            height: float
-                Desired height of the generated cylinder
-
-            density: int
-                Desired density of the generated cylinder, 
-                this density is determines the amount of points on each ring that composes the cylinder and on how many rings the cylinder will have
-
-        Returns:
-            rotated_cylinder: np.narray (n,3)
-                3d point cloud of the desired cylinder
-        """
-    # extract info from cylinder model
-    radius = model[6]
-    X,Y,Z = model[:3]
-    # get 3d points to make an upright cylinder centered to the origin
-    n = np.arange(0,360,int(360/density))
-    height = np.arange(0,height,height/density)
-    n = np.deg2rad(n)
-    x,z = np.meshgrid(n,height)
-    x = x.flatten()
-    z = z.flatten()
-    cyl = np.vstack([np.cos(x)*radius,np.sin(x)*radius,z]).T
-    # rotate and translate the cylinder to fit the model
-    rotation = rotation_matrix_from_vectors([0,0,1],model[3:6])
-    rotated_cylinder = np.matmul(rotation,cyl.T).T + np.array([X,Y,Z])
-    return rotated_cylinder   
 
 def plt3dpaint(nppoints, color_map = 'jet', reduce_for_vis = True, voxel_size = 0.2, pointsize = 0.1, subplots = 5):
     """
