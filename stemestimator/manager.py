@@ -88,12 +88,24 @@ class PointCloudManager:
             utils.open_3d_paint(self.tree_tool.cluster_list, reduce_for_vis=True, voxel_size=0.1)
     
     def group_stems(self, show=False):
+        """Groups the clusters into stems.
+
+        :param show: Whether to show the result in the Open3D viewer.
+        :type show: bool
+        :return: None
+        """
         self.tree_tool.step_4_group_stems(max_distance=0.4)
 
         if show:
             utils.open_3d_paint(self.tree_tool.complete_stems, reduce_for_vis=True, voxel_size=0.1)
     
     def get_ground_level_trees(self, show=False):
+        """Gets the ground level trees.
+
+        :param show: Whether to show the result in the Open3D viewer.
+        :type show: bool
+        :return: None
+        """
         self.tree_tool.step_5_get_ground_level_trees(lowstems_height=5)
 
         if show:
@@ -103,7 +115,7 @@ class PointCloudManager:
         self.tree_tool.step_6_get_cylinder_tree_models(search_radius=0.1)
 
         if show:
-            utils.open_3d_paint([i['tree'] for i in self.tree_tool.finalstems] +
+            utils.open_3d_paint([i['tree'] for i in self.tree_tool.final_stems] +
                               self.tree_tool.visualization_cylinders, reduce_for_vis=True, voxel_size=0.1)
     """    
     def ellipse_fit(self):
