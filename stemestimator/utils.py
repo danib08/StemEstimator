@@ -124,6 +124,48 @@ def distance_point_to_line(point, line_point1, line_point2=np.array([0,0,0])):
     normalized = distance / np.linalg.norm(line_point1 - line_point2)
     return normalized
 
+def angle_between_vectors(vector1, vector2):
+    """Get the angle between two vectors.
+
+    :param vector1: The first vector.
+    :type vector1: np.ndarray (3)
+    :param vector2: The second vector.
+    :type vector2: np.ndarray (3)
+    :return: The angle between the two vectors.
+    :rtype: float
+    """
+    dot_product = np.dot(vector1, vector2)
+    vector1_norm = np.linalg.norm(vector1)
+    vector2_norm = np.linalg.norm(vector2)
+    
+    value = dot_product / (vector1_norm * vector2_norm)   
+    value = np.clip(value, -1, 1)
+
+    angle = np.arccos(value)
+    return angle
+
+def similarize(test, target):
+    """
+        Test a vectors angle to another vector and mirror its direction if it is greater than pi/2
+
+        Args:
+            test: np.narray (3)
+                3d vector to test
+
+            target: np.narray (3)
+                3d vector to which test has to have an angle smaller than pi/2
+
+        Returns:
+            test: np.narray (3)
+                3d vectors whos angle is below pi/2 with respect to the target vector
+        """
+    test = np.array(test)
+    assert len(test) == 3,'vector must be dim 3'
+    angle = angle_between_vectors(test,target)
+    if angle > np.pi/2:
+        test = -test
+    return test
+
 def rotation_matrix_from_vectors(vector1, vector2):
     """
         Finds a rotation matrix that can rotate vector1 to align with vector 2
@@ -148,26 +190,6 @@ def rotation_matrix_from_vectors(vector1, vector2):
     matrix = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
     rotation_matrix = np.eye(3) + matrix + matrix.dot(matrix) * ((1 - c) / (s ** 2))
     return rotation_matrix
-
-def angle_between_vectors(vector1,vector2):
-    """
-        Finds the angle between 2 vectors
-
-        Args:
-            vec1: np.narray (3)
-                First vector to measure angle from
-        
-            vec2: np.narray (3)
-                Second vector to measure angle to
-
-        Returns:
-            None
-        """
-    value = np.sum(np.multiply(vector1, vector2)) / (np.linalg.norm(vector1) * np.linalg.norm(vector2))
-    if (value<-1) | (value>1):
-        value = np.sign(value)
-    angle = np.arccos(value)
-    return angle
 
 def makecylinder(model=[0,0,0,1,0,0,1],height = 1,density=10):
     """
@@ -294,28 +316,6 @@ def makesphere(centroid=[0, 0, 0], radius=1, dense=90):
         ]
     ).T
     return sphere
-
-def similarize(test, target):
-    """
-        Test a vectors angle to another vector and mirror its direction if it is greater than pi/2
-
-        Args:
-            test: np.narray (3)
-                3d vector to test
-
-            target: np.narray (3)
-                3d vector to which test has to have an angle smaller than pi/2
-
-        Returns:
-            test: np.narray (3)
-                3d vectors whos angle is below pi/2 with respect to the target vector
-        """
-    test = np.array(test)
-    assert len(test) == 3,'vector must be dim 3'
-    angle = angle_between_vectors(test,target)
-    if angle > np.pi/2:
-        test = -test
-    return test
 
 def Iscaled_dimensions(las_file, new_data):
 
