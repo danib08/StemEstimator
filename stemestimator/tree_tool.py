@@ -246,13 +246,57 @@ class TreeTool:
                     # Make sure the vector is pointing upwards
                     coefficients[3:6] = utils.similarize(coefficients[3:6], [0, 0, 1])
 
-                    final_stems.append({"tree": stem_points[indices], "model": coefficients, 'ground': stem[1][2]})
+                    final_stems.append({"tree_points": stem_points[indices], "model": coefficients, 'ground': stem[1][2]})
                     visualization_cylinders.append(
                         utils.make_cylinder(model=coefficients, heights=7, density=60)
                     )
 
         self.final_stems = final_stems
         self.visualization_cylinders = visualization_cylinders
+
+    def step_7_ellipse_fit(self):
+        """Fits an ellipse to the stem points and calculates the diameter of the tree.
+
+        :return: None
+        """
+        for i in self.final_stems:
+            # If the tree has enough points to fit an ellipse
+            if len(i["tree_points"]) > 5:
+                direction_vector = i["model"][3:6]
+                cylinder_diameter = i["model"][6] * 2
+                
+                # Find a matrix that rotates the stem to be colinear with the z-axis
+                R = utils.rotation_matrix_from_vectors(direction_vector, [0, 0, 1])
+
+                # Tree coordinates centered around the origin of the cylinder model
+                centered_tree = i["tree_points"] - i["model"][0:3]
+                corrected_cyl = (R @ centered_tree.T).T
+
+                # Fit an ellipse using only the x-y coordinates
+                try:
+                    reg = LsqEllipse().fit(corrected_cyl[:, 0:2])
+                    center, width, height, phi = reg.as_parameters()
+
+                    #TODO: this is the DBH specific calculation
+                    ellipse_diameter = 3*(width + height) - np.sqrt((3*width + height) * (width + 3*height))
+
+                except np.linalg.LinAlgError:
+                    ellipse_diameter = cylinder_diameter
+                except IndexError:
+                    ellipse_diameter = cylinder_diameter
+
+                i["ellipse_diameter"] = ellipse_diameter
+                i["cylinder_diameter"] = cylinder_diameter
+                i["final_diameter"] = max(ellipse_diameter, cylinder_diameter)
+                n_model = i["model"]
+                n_model[6] = i["final_diameter"]
+                i['vis_cyl'] = utils.make_cylinder(model=n_model, heights=7, density=60)
+
+            else:
+                i["cylinder_diameter"] = None
+                i["ellipse_diameter"] = None
+                i["final_diameter"] = None
+                i['vis_cyl'] = None
 
     def set_point_cloud(self, point_cloud):
         """
@@ -275,51 +319,6 @@ class TreeTool:
                 self.point_cloud = pclpy.pcl.PointCloud.PointXYZ(point_cloud)
             else:
                 self.point_cloud = point_cloud
-
-    def step_7_ellipse_fit(self, height_ll=-1,height_ul=-1):
-        """
-        Extract the cylinder and ellipse diameter of each stem
-
-        Args:
-            None
-
-        Returns:
-            None
-        """
-        for i in self.final_stems:
-            # if the tree points has enough points to fit a ellipse
-            if len(i["tree"]) > 5:
-                # find a matrix that rotates the stem to be colinear to the z axis
-                R = utils.rotation_matrix_from_vectors(i["model"][3:6], [0, 0, 1])
-                # we center the stem to the origen then rotate it
-                centeredtree = i["tree"] - i["model"][0:3]
-                correctedcyl = (R @ centeredtree.T).T
-                # fit an ellipse using only the xy coordinates
-                try:
-                    if height_ll != -1:
-                        correctedcyl = correctedcyl[:,2]>height_ll
-                    if height_ul != -1:
-                        correctedcyl = correctedcyl[:,2]<height_ul
-                    reg = LsqEllipse().fit(correctedcyl[:, 0:2])
-                    center, a, b, phi = reg.as_parameters()
-
-                    ellipse_diameter = 3 * (a + b) - np.sqrt((3 * a + b) * (a + 3 * b))
-                except np.linalg.LinAlgError:
-                    ellipse_diameter = i["model"][6] * 2
-                except IndexError:
-                    ellipse_diameter = i["model"][6] * 2
-                cylinder_diameter = i["model"][6] * 2
-                i["cylinder_diameter"] = cylinder_diameter
-                i["ellipse_diameter"] = ellipse_diameter
-                i["final_diameter"] = max(ellipse_diameter, cylinder_diameter)
-                n_model = i["model"]
-                n_model[6] = i["final_diameter"]
-                i['vis_cyl'] = utils.make_cylinder(model=n_model, heights=7, density=60)
-            else:
-                i["cylinder_diameter"] = None
-                i["ellipse_diameter"] = None
-                i["final_diameter"] = None
-                i['vis_cyl'] = None
 
     def save_results(self, save_location="results/myresults.csv"):
         """

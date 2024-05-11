@@ -121,12 +121,17 @@ class PointCloudManager:
         self.tree_tool.step_6_get_cylinder_tree_models(search_radius=0.1)
 
         if show:
-            utils.open_3d_paint([i['tree'] for i in self.tree_tool.final_stems] +
+            utils.open_3d_paint([i['tree_points'] for i in self.tree_tool.final_stems] +
                               self.tree_tool.visualization_cylinders, reduce_for_vis=True, voxel_size=0.1)
-    """    
+            
     def ellipse_fit(self):
-        self.tree_tool.open_3d_paint()
+        """Fits an ellipse to the tree models.
 
+        :return: None
+        """
+        self.tree_tool.step_7_ellipse_fit()
+
+    """    
     def save_results(self):
         self.tree_tool.save_results(save_location='results/myresults.csv')
     """
