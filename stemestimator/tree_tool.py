@@ -1,9 +1,7 @@
-import os
 import pclpy
 import utils
 import seg_tree
 import numpy as np
-import pandas as pd
 from ellipse import LsqEllipse
 
 class TreeTool:
@@ -192,155 +190,38 @@ class TreeTool:
             if np.min(i[0], axis=0)[2] < (lowstems_height + i[1][2])
         ]
         
-        self.low_stems = low_stems
-        self.low_stems_visualize = [i[0] for i in low_stems]
-
-    def step_6_get_cylinder_tree_models(self, search_radius=0.1, distance=0.08):
-        """Extracts cylinder models for each stem using RANSAC.
-
-        :param search_radius: The radius used for neighborhood search to calculate normals.
-        :type search_radius: float
-        :param distance: The distance threshold for RANSAC.
-        :type distance: float
-        :return: None
-        """
-        final_stems = []
-        visualization_cylinders = []
-
         """
         NOTE: each stem is a list with two elements, the first element is the point cloud 
         of the stem and the second element is the centroid of the stem.
         [stem_points, [X, Y, Z]]
         """
-        for stem in self.low_stems:
-            # Segment to cylinder
-            stem_points = stem[0]
-            indices, coefficients = seg_tree.cylinder_segmentation(
-                stem_points,
-                max_iter=10000,
-                search_radius=search_radius,
-                normal_weight=0.01,
-                max_distance=distance,
-                min_radius=0,
-                max_radius=0.2,
-            )
-            # If the model has more than 10 points
-            if len(indices) > 10:
-                """
-                NOTE: the coefficients for the cylinder model are as follows:
-                [X, Y, Z, direction_vector_x, direction_vector_y, direction_vector_z, radius]
-                """
-                direction_vector = coefficients[3:6]
-                angle = utils.angle_between_vectors(direction_vector, [0, 0, 1])
-                cosine_angle = np.cos(angle)
+        self.low_stems = low_stems
+        self.low_stems_visualize = [i[0] for i in low_stems]
 
-                # If the model finds an upright cylinder
-                if (abs(cosine_angle) > 0.5):
-                    # Calculate centroid
-                    coefficients = np.array(coefficients)
-                    Z = stem[1][2] + 1.3
-                    Y = coefficients[4] * ((Z - coefficients[2]) / coefficients[5]) + coefficients[1]
-                    X = coefficients[3] * ((Z - coefficients[2]) / coefficients[5]) + coefficients[0]
-                    coefficients[0:3] = np.array([X, Y, Z])
+    def step_6_fit_ellipses(self):
+        final_stems = []
+        visualization_ellipses = []
 
-                    # Make sure the vector is pointing upwards
-                    coefficients[3:6] = utils.similarize(coefficients[3:6], [0, 0, 1])
+        for stem_points, _ in self.low_stems:
+            ellipse_diameters = []
+            section_list = utils.get_stem_sections(stem_points, num_sections=15)
 
-                    final_stems.append({"tree_points": stem_points[indices], "model": coefficients, 'ground': stem[1][2]})
-                    visualization_cylinders.append(
-                        utils.make_cylinder(model=coefficients, heights=7, density=60)
-                    )
+            for section_points in section_list:
+                z_coordinate = np.mean(section_points[:, 2])
+                center, width, height, phi = utils.fit_ellipse(section_points)
+                ellipse_points = utils.make_ellipse(center, width, height, phi, z_coordinate)
+
+                # Post-process the ellipse to ensure it remains within the bounds of the stem
+                stem_bbox = utils.get_bounding_box(stem_points)
+                adjusted_ellipse_points = utils.post_process_ellipse(stem_bbox, ellipse_points, 
+                                                                     center, phi, z_coordinate)
+
+                #diameter = (width + height) / 2 TODO: calculate this
+                #ellipse_diameters.append(diameter)
+
+                visualization_ellipses.append(adjusted_ellipse_points)
+        
+            final_stems.append({"stem_points": stem_points, "ellipse_diameters": ellipse_diameters})
 
         self.final_stems = final_stems
-        self.visualization_cylinders = visualization_cylinders
-
-    def step_7_ellipse_fit(self):
-        """Fits an ellipse to the stem points and calculates the diameter of the tree.
-
-        :return: None
-        """
-        for i in self.final_stems:
-            # If the tree has enough points to fit an ellipse
-            if len(i["tree_points"]) > 5:
-                direction_vector = i["model"][3:6]
-                cylinder_diameter = i["model"][6] * 2
-                
-                # Find a matrix that rotates the stem to be colinear with the z-axis
-                R = utils.rotation_matrix_from_vectors(direction_vector, [0, 0, 1])
-
-                # Tree coordinates centered around the origin of the cylinder model
-                centered_tree = i["tree_points"] - i["model"][0:3]
-                corrected_cyl = (R @ centered_tree.T).T
-
-                # Fit an ellipse using only the x-y coordinates
-                try:
-                    reg = LsqEllipse().fit(corrected_cyl[:, 0:2])
-                    center, width, height, phi = reg.as_parameters()
-
-                    #TODO: this is the DBH specific calculation
-                    ellipse_diameter = 3*(width + height) - np.sqrt((3*width + height) * (width + 3*height))
-
-                except np.linalg.LinAlgError:
-                    ellipse_diameter = cylinder_diameter
-                except IndexError:
-                    ellipse_diameter = cylinder_diameter
-
-                i["ellipse_diameter"] = ellipse_diameter
-                i["cylinder_diameter"] = cylinder_diameter
-                i["final_diameter"] = max(ellipse_diameter, cylinder_diameter)
-                n_model = i["model"]
-                n_model[6] = i["final_diameter"]
-                i['vis_cyl'] = utils.make_cylinder(model=n_model, heights=7, density=60)
-
-            else:
-                i["cylinder_diameter"] = None
-                i["ellipse_diameter"] = None
-                i["final_diameter"] = None
-                i['vis_cyl'] = None
-
-    def set_point_cloud(self, point_cloud):
-        """
-        Resets the point cloud that treetool will process
-
-        Args:
-            point_cloud : np.narray | pclpy.pcl.PointCloud.PointXYZRGB | pclpy.pcl.PointCloud.PointXYZRGB
-                The 3d point cloud of the forest that treetool will process, if it's a numpy array it should be shape (n,3)
-
-        Returns:
-            None
-        """
-        if point_cloud is not None:
-            assert (
-                (type(point_cloud) == pclpy.pcl.PointCloud.PointXYZRGB)
-                or (type(point_cloud) == pclpy.pcl.PointCloud.PointXYZ)
-                or (type(point_cloud) == np.ndarray)
-            ), "Not valid point_cloud"
-            if type(point_cloud) == np.ndarray:
-                self.point_cloud = pclpy.pcl.PointCloud.PointXYZ(point_cloud)
-            else:
-                self.point_cloud = point_cloud
-
-    def save_results(self, save_location="results/myresults.csv"):
-        """
-        Save a csv with XYZ and DBH of each detected tree
-
-        Args:
-            savelocation : str
-                path to save file
-
-        Returns:
-            None
-        """
-        tree_model_info = [i["model"] for i in self.final_stems]
-        tree_diameter_info = [i["final_diameter"] for i in self.final_stems]
-
-        data = {"X": [], "Y": [], "Z": [], "DBH": []}
-        for i, j in zip(tree_model_info, tree_diameter_info):
-            data["X"].append(i[0])
-            data["Y"].append(i[1])
-            data["Z"].append(i[2])
-            data["DBH"].append(j)
-
-        os.makedirs(os.path.dirname(save_location), exist_ok=True)
-
-        pd.DataFrame.from_dict(data).to_csv(save_location)
+        self.visualization_ellipses = visualization_ellipses

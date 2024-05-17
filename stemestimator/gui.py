@@ -81,13 +81,12 @@ class App(tk.Tk):
         """
         self.show_frame("ProcessingPage")
         self.manager = PointCloudManager(file_path)
-        #self.manager.show_point_cloud()
         self.manager.remove_ground(show=False)
         self.manager.normal_filtering(show=False)
         self.manager.clustering(show=False)
         self.manager.group_stems(show=False)
-        self.manager.get_ground_level_trees(show=True)
-        self.manager.get_cylinders(show=True)
+        self.manager.get_ground_level_trees(show=False)
+        self.manager.fit_ellipses(show=True)
 
 if __name__ == "__main__":
     width, height = 800, 600

@@ -111,27 +111,15 @@ class PointCloudManager:
         if show:
             utils.open_3d_paint(self.tree_tool.low_stems_visualize, reduce_for_vis=True, voxel_size=0.1)
 
-    def get_cylinders(self, show=False):
-        """Gets the cylinder tree models.
+    def fit_ellipses(self, show=False):
+        """Fits ellipses to the ground level trees.
 
         :param show: Whether to show the result in the Open3D viewer.
         :type show: bool
         :return: None
         """
-        self.tree_tool.step_6_get_cylinder_tree_models(search_radius=0.1)
+        self.tree_tool.step_6_fit_ellipses()
 
         if show:
-            utils.open_3d_paint([i['tree_points'] for i in self.tree_tool.final_stems] +
-                              self.tree_tool.visualization_cylinders, reduce_for_vis=True, voxel_size=0.1)
-            
-    def ellipse_fit(self):
-        """Fits an ellipse to the tree models.
-
-        :return: None
-        """
-        self.tree_tool.step_7_ellipse_fit()
-
-    """    
-    def save_results(self):
-        self.tree_tool.save_results(save_location='results/myresults.csv')
-    """
+            utils.open_3d_paint([i['stem_points'] for i in self.tree_tool.final_stems] +
+                              self.tree_tool.visualization_ellipses, reduce_for_vis=True, voxel_size=0.1)
