@@ -4,8 +4,8 @@ name: stemestimator
 channels:
   - "conda-forge"
   - "davidcaron"
+  - "defaults"
 dependencies:
   - pclpy
-  - pandas
+  - opencv
   - matplotlib
-  - ipykernel
