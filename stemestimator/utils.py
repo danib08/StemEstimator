@@ -34,12 +34,12 @@ def open_3d_paint(nppoints, color_map='jet', reduce_for_vis=False, voxel_size=0.
         visualizer = open3d.visualization.Visualizer()
         visualizer.create_window()
         options = visualizer.get_render_option()
-        options.background_color = np.asarray([1, 1, 1])
+        options.background_color = np.asarray([0, 0, 0])
         options.point_size = pointsize
 
         if len(nppoints) > 1:
             # If multiple point clouds are given, display them in different colors
-            for n,i in enumerate(nppoints):
+            for n, i in enumerate(nppoints):
                 workpoints = i
                 if (type(workpoints) == pclpy.pcl.PointCloud.PointXYZ):
                     workpoints = workpoints.xyz
