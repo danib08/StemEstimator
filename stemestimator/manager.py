@@ -107,7 +107,7 @@ class PointCloudManager:
         :type show: bool
         :return: None
         """
-        self.tree_tool.step_6_fit_ellipses()
+        self.tree_tool.step_5_fit_ellipses()
 
         if show:
             utils.open_3d_paint([i['stem_points'] for i in self.tree_tool.final_stems] +
