@@ -5,7 +5,7 @@ import seg_tree
 import numpy as np
 from matplotlib import cm
 
-def open_3d_paint(nppoints, color_map='jet', reduce_for_vis=False, voxel_size=0.1, pointsize=0.1):
+def open_3d_paint(nppoints, color_map='viridis', reduce_for_vis=False, voxel_size=0.1, pointsize=0.1):
     """
     Opens an open3d visualizer and displays point clouds.
 
@@ -34,7 +34,7 @@ def open_3d_paint(nppoints, color_map='jet', reduce_for_vis=False, voxel_size=0.
         visualizer = open3d.visualization.Visualizer()
         visualizer.create_window()
         options = visualizer.get_render_option()
-        options.background_color = np.asarray([1, 1, 1])
+        options.background_color = np.asarray([0, 0, 0])
         options.point_size = pointsize
 
         if len(nppoints) > 1:
