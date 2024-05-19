@@ -73,7 +73,7 @@ class PointCloudManager:
         :return: None
         """
         self.tree_tool.step_2_normal_filtering(search_radius=0.12, verticality_threshold=0.04, 
-                                               curvature_threshold=0.06)
+                                               curvature_threshold=0.04)
         if show:
             utils.open_3d_paint(self.tree_tool.filtered_points.xyz)
 
@@ -95,7 +95,7 @@ class PointCloudManager:
         :type show: bool
         :return: None
         """
-        self.tree_tool.step_4_group_stems(max_distance=0.4)
+        self.tree_tool.step_4_group_stems(max_distance=10)
 
         if show:
             utils.open_3d_paint(self.tree_tool.complete_stems, reduce_for_vis=False, voxel_size=0.1)
