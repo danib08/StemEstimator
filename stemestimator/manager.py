@@ -72,7 +72,7 @@ class PointCloudManager:
         :type show: bool
         :return: None
         """
-        self.tree_tool.step_2_normal_filtering(search_radius=0.12, verticality_threshold=0.04, 
+        self.tree_tool.step_2_normal_filtering(search_radius=0.12, verticality_threshold=0.03, 
                                                curvature_threshold=0.04)
         if show:
             utils.open_3d_paint(self.tree_tool.filtered_points.xyz)
