@@ -84,8 +84,7 @@ class App(tk.Tk):
         self.manager.remove_ground(show=False)
         self.manager.normal_filtering(show=False)
         self.manager.clustering(show=False)
-        self.manager.group_stems(show=False)
-        self.manager.get_ground_level_trees(show=False)
+        self.manager.group_stems(show=True)
         self.manager.fit_ellipses(show=True)
 
 if __name__ == "__main__":

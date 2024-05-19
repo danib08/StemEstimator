@@ -60,6 +60,7 @@ class TreeTool:
         :type curvature_threshold: float
         :param min_points: Minimum number of points required for neighborhood search (optional).
         :type min_points: int
+        :return: None
         """
         if min_points > 0:
             subject_cloud = seg_tree.radius_outlier_removal(self.non_ground_cloud.xyz, min_points, 
@@ -86,9 +87,6 @@ class TreeTool:
         only_horizontal_normals = non_nan_normals[verticality_curvature_mask]
 
         # Set filtered and non filtered points
-        self.non_ground_normals = non_ground_normals
-        self.non_filtered_normals = non_nan_normals
-        self.non_filtered_points = pclpy.pcl.PointCloud.PointXYZ(non_nan_cloud)
         self.filtered_points = pclpy.pcl.PointCloud.PointXYZ(only_horizontal_points) # Trunk points
         self.filtered_normals = only_horizontal_normals
 
@@ -154,57 +152,19 @@ class TreeTool:
         self.stem_groups = stem_groups
         self.complete_stems = temp_stems
 
-    def step_5_get_ground_level_trees(self, lowstems_height=5):
-        """Filters stems to only keep those near the ground and crops them up to a certain height.
+    def step_5_fit_ellipses(self):
+        final_stems = []
+        visualization_ellipses = []
 
-        :param lowstems_height: The height threshold for low stems.
-        :type lowstems_height: int
-        :return: None
-        """
-        # Generate a bivariate quadratic equation to model the ground
-        ground_points = self.ground_cloud.xyz
-        coefficient_matrix = np.c_[
-            np.ones(ground_points.shape[0]),
-            ground_points[:, :2],
-            np.prod(ground_points[:, :2], axis=1),
-            ground_points[:, :2] ** 2,
-        ]
-        self.ground_model_c, _, _, _ = np.linalg.lstsq(coefficient_matrix, ground_points[:, 2], rcond=None)
-
-        # Obtains a ground point for each stem by taking the XY component of the centroid
-        # and obtaining the coresponding Z coordinate from the quadratic ground model
-        self.stems_with_ground = []
-        for i in self.complete_stems:
-            centroid = np.mean(i, 0)
-            X, Y = centroid[:2]
-            Z = np.dot(
-                    np.c_[np.ones(X.shape), X, Y, X * Y, X**2, Y**2],
-                    self.ground_model_c,)
-
-            self.stems_with_ground.append([i, [X, Y, Z[0]]])
-
-        # Filter stems that do not have points below our lowstems_height threshold
-        low_stems = [
-            i
-            for i in self.stems_with_ground
-            if np.min(i[0], axis=0)[2] < (lowstems_height + i[1][2])
-        ]
-        
+        counter = 0
         """
         NOTE: each stem is a list with two elements, the first element is the point cloud 
         of the stem and the second element is the centroid of the stem.
         [stem_points, [X, Y, Z]]
         """
-        self.low_stems = low_stems
-        self.low_stems_visualize = [i[0] for i in low_stems]
-
-    def step_6_fit_ellipses(self):
-        final_stems = []
-        visualization_ellipses = []
-
-        for stem_points, _ in self.low_stems:
+        for stem_points in self.complete_stems:
             ellipse_diameters = []
-            section_list = utils.get_stem_sections(stem_points, num_sections=15)
+            section_list = utils.get_stem_sections(stem_points, num_sections=20)
 
             for section_points in section_list:
                 z_coordinate = np.mean(section_points[:, 2])
@@ -216,12 +176,12 @@ class TreeTool:
                 adjusted_ellipse_points = utils.post_process_ellipse(stem_bbox, ellipse_points, 
                                                                      center, phi, z_coordinate)
 
-                #diameter = (width + height) / 2 TODO: calculate this
-                #ellipse_diameters.append(diameter)
-
                 visualization_ellipses.append(adjusted_ellipse_points)
         
             final_stems.append({"stem_points": stem_points, "ellipse_diameters": ellipse_diameters})
-
+            counter += 1
+            if counter == 3:
+                break
+            
         self.final_stems = final_stems
         self.visualization_ellipses = visualization_ellipses

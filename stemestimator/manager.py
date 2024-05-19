@@ -99,18 +99,6 @@ class PointCloudManager:
 
         if show:
             utils.open_3d_paint(self.tree_tool.complete_stems, reduce_for_vis=False, voxel_size=0.1)
-    
-    def get_ground_level_trees(self, show=False):
-        """Gets the ground level trees.
-
-        :param show: Whether to show the result in the Open3D viewer.
-        :type show: bool
-        :return: None
-        """
-        self.tree_tool.step_5_get_ground_level_trees(lowstems_height=5)
-
-        if show:
-            utils.open_3d_paint(self.tree_tool.low_stems_visualize, reduce_for_vis=False, voxel_size=0.1)
 
     def fit_ellipses(self, show=False):
         """Fits ellipses to the ground level trees.
