@@ -5,7 +5,7 @@ import seg_tree
 import numpy as np
 from matplotlib import cm
 
-def open_3d_paint(nppoints, color_map='viridis', reduce_for_vis=False, voxel_size=0.1, pointsize=0.1):
+def open_3d_paint(nppoints, color_map='viridis', reduce_for_vis=False, voxel_size=0.1, point_size=0.1):
     """
     Opens an open3d visualizer and displays point clouds.
 
@@ -17,8 +17,8 @@ def open_3d_paint(nppoints, color_map='viridis', reduce_for_vis=False, voxel_siz
     :type reduce_for_vis: bool
     :param voxel_size: the voxel size in case of point cloud reduction
     :type voxel_size: float
-    :param pointsize: the size of the points in the visualizer
-    :type pointsize: int
+    :param point_size: the size of the points in the visualizer
+    :type point_size: float
     :raises ValueError: if the type of nppoints is invalid.
     :raises Exception: if an error occurs during visualization.
     :return: None
@@ -35,7 +35,7 @@ def open_3d_paint(nppoints, color_map='viridis', reduce_for_vis=False, voxel_siz
         visualizer.create_window()
         options = visualizer.get_render_option()
         options.background_color = np.asarray([0, 0, 0])
-        options.point_size = pointsize
+        options.point_size = point_size
 
         if len(nppoints) > 1:
             # If multiple point clouds are given, display them in different colors
@@ -124,99 +124,6 @@ def distance_point_to_line(point, line_point1, line_point2=np.array([0,0,0])):
     normalized = distance / np.linalg.norm(line_point1 - line_point2)
     return normalized
 
-def angle_between_vectors(vector1, vector2):
-    """Get the angle between two vectors.
-
-    :param vector1: The first vector.
-    :type vector1: np.ndarray (3)
-    :param vector2: The second vector.
-    :type vector2: np.ndarray (3)
-    :return: The angle between the two vectors.
-    :rtype: float
-    """
-    dot_product = np.dot(vector1, vector2)
-    vector1_norm = np.linalg.norm(vector1)
-    vector2_norm = np.linalg.norm(vector2)
-    
-    value = dot_product / (vector1_norm * vector2_norm)   
-    value = np.clip(value, -1, 1)
-
-    angle = np.arccos(value)
-    return angle
-
-def similarize(test, target):
-    """Make two vectors point in the same direction.
-
-    :param test: The vector to be aligned.
-    :type test: np.ndarray (3)
-    :param target: The vector to align to.
-    :type target: np.ndarray (3)
-    :return: The aligned vector.
-    :rtype: np.ndarray (3)
-    """
-    test = np.array(test)
-    target = np.array(target)
-    angle = angle_between_vectors(test, target)
-
-    if angle > np.pi/2:
-        test = -test
-    return test
-
-def make_cylinder(model, heights=1, density=10):
-    """Create a cylinder point cloud based on a model.
-
-    :param model: The model to create the cylinder from.
-    :type model: np.ndarray (7)
-    :param height: The height of the cylinder.
-    :type height: float
-    :param density: The density of the cylinder.
-    :type density: int
-    :return: The cylinder point cloud.
-    :rtype: np.ndarray (n,3)
-    """
-    radius = model[6]
-    X, Y, Z = model[:3]
-    direction_vector = model[3:6]
-
-    # Get 3D points to make an upright cylinder centered to the origin
-    angles = np.arange(0, 360, int(360/density))
-    heights = np.arange(0, heights, heights/density)
-    angles = np.deg2rad(angles)
-
-    x, z = np.meshgrid(angles, heights)
-    x = x.flatten()
-    z = z.flatten() 
-
-    cyl = np.vstack([np.cos(x)*radius, np.sin(x)*radius, z]).T
-    # Rotate and translate the cylinder to fit the model
-    rotation = rotation_matrix_from_vectors([0,0,1], direction_vector)
-    rotated_cylinder = np.matmul(rotation, cyl.T).T + np.array([X,Y,Z])
-    return rotated_cylinder   
-
-def rotation_matrix_from_vectors(vector1, vector2):
-    """Finds a rotation matrix that can rotate the first vector to align with second.
-    
-    :param vector1: The vector to be rotated.
-    :type vector1: np.ndarray (3)
-    :param vector2: The vector to align to.
-    :type vector2: np.ndarray (3)
-    :return: The rotation matrix.
-    :rtype: np.ndarray (3,3)
-    """
-    if all(np.abs(vector1) == np.abs(vector2)):
-        return np.eye(3)
-    
-    # normalizing the vectors
-    a, b = (vector1 / np.linalg.norm(vector1)).reshape(3), (vector2 / np.linalg.norm(vector2)).reshape(3)
-    
-    v = np.cross(a, b)
-    c = np.dot(a, b)
-    s = np.linalg.norm(v)
-    
-    matrix = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
-    rotation_matrix = np.eye(3) + matrix + matrix.dot(matrix) * ((1 - c) / (s ** 2))
-    return rotation_matrix
-
 def get_stem_sections(points, num_sections=10):
     """Divides the stem point cloud into sections.
 
@@ -264,6 +171,7 @@ def get_stem_sections(points, num_sections=10):
 
     return sections
 
+#----------------------------------------------------------------------------------------------------
 def fit_ellipse(points, bounding_box):
     ellipse = cv2.fitEllipse(points)
     (xc, yc), (d1, d2), angle = ellipse
@@ -278,9 +186,12 @@ def fit_ellipse(points, bounding_box):
         d2 = y_max - y_min
 
     adjusted_ellipse = ((xc, yc), (d1, d2), angle)
-    return adjusted_ellipse
+    semi_major_axis = d1 / 2
+    semi_minor_axis = d2 / 2
+    approximate_radius = (semi_major_axis + semi_minor_axis) / 2
+    return adjusted_ellipse, approximate_radius
 
-def generate_ellipse_points(ellipse, z, num_points=100):
+def generate_ellipse_points(ellipse, z, num_points=50):
     (xc, yc), (d1, d2), angle = ellipse
     t = np.linspace(0, 2 * np.pi, num_points)
 
@@ -296,3 +207,46 @@ def generate_ellipse_points(ellipse, z, num_points=100):
     Y_rotated = ellipse_points[1, :] + yc
     Z = np.full_like(X_rotated, z)
     return np.column_stack((X_rotated, Y_rotated, Z))
+
+def visualize_results(stem_data, point_size=0.1):
+    """
+    Visualizes the stems with their fitted ellipses and radius annotations using Open3D.
+
+    :param stem_data: List of dictionaries containing stem points, ellipse radii, 
+    z coordinates, and ellipse points.
+    :type stem_data: list of dicts
+    :param point_size: the size of the points in the visualizer
+    :type point_size: float
+    """
+    # Create a list to store the geometries for visualization
+    geometries = []
+
+    # Visualize stem points and ellipses
+    for stem in stem_data:
+        # Stem points
+        stem_points = stem["stem_points"]
+        pcd = open3d.geometry.PointCloud()
+        pcd.points = open3d.utility.Vector3dVector(stem_points)
+        pcd.paint_uniform_color([0.1, 0.9, 0.1])  # Green color for stem points
+        geometries.append(pcd)
+
+        # Ellipse points
+        ellipse_points = stem["ellipse_points"]
+        for ellipse in ellipse_points:
+            ellipse_pcd = open3d.geometry.PointCloud()
+            ellipse_pcd.points = open3d.utility.Vector3dVector(ellipse)
+            ellipse_pcd.paint_uniform_color([0.1, 0.1, 0.9])  # Blue color for ellipses
+            geometries.append(ellipse_pcd)
+
+    # Visualize all geometries
+    visualizer = open3d.visualization.Visualizer()
+    visualizer.create_window()
+    for geom in geometries:
+        visualizer.add_geometry(geom)
+    
+    options = visualizer.get_render_option()
+    options.background_color = np.asarray([0, 0, 0])
+    options.point_size = point_size
+    
+    visualizer.run()
+    visualizer.destroy_window()    
