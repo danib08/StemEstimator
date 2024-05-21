@@ -107,10 +107,17 @@ class PointCloudManager:
         """
         self.tree_tool.step_5_fit_ellipses()
             
-    def show_results(self):
-        """Shows the results of the point cloud processing.
+    def show_final_point_cloud(self):
+        """Shows the final point cloud with the stems and ellipses with Open3D.
 
         :return: None
         """
         stem_data = self.tree_tool.final_stems
-        utils.visualize_results(stem_data)
+        utils.plot_full_cloud(stem_data)
+
+    def get_tree_count(self):
+        """Returns the number of trees in the point cloud.
+
+        :return: int
+        """
+        return len(self.tree_tool.final_stems)

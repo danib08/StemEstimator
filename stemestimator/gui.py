@@ -60,6 +60,8 @@ class App(tk.Tk):
         :return: None
         """
         frame = self.frames[page_name]
+        if page_name == "ResultsPage":
+            frame.create()
         frame.tkraise()
 
     def start_processing(self, file_path):
@@ -88,12 +90,19 @@ class App(tk.Tk):
         self.manager.fit_ellipses()
         self.show_frame("ResultsPage")
 
-    def show_results(self):
+    def show_final_point_cloud(self):
         """Shows the results of the point cloud processing.
 
         :return: None
         """
-        self.manager.show_results()
+        self.manager.show_final_point_cloud()
+
+    def get_tree_count(self):
+        """Returns the number of trees in the point cloud.
+
+        :return: int
+        """
+        return self.manager.get_tree_count()
 
 if __name__ == "__main__":
     width, height = 800, 600

@@ -29,6 +29,7 @@ class BasePage(tk.Frame):
 
         self.style = ttk.Style()
         self.style.configure('s.TButton', font=('Helvetica', 10, "bold"), foreground="green")
+        self.style.configure('m.TButton', font=('Helvetica', 12, "bold"), foreground="green")
         self.style.configure('b.TButton', font=('Helvetica', 16, "bold"), foreground="green")
         self.set_background()
 
@@ -196,32 +197,52 @@ class ResultsPage(BasePage):
         """Constructor method. Sets the controller and creates the widgets.
         """
         super().__init__(parent, controller, width, height)
+        
+    def create(self):
+        """Gets tree count, creates and places widgets.
+        Called after all of the trees have been processed.
+
+        :return: None
+        """
+        self.selected_tree_var = tk.StringVar(self)
+        self.tree_count = self.controller.get_tree_count()
         self.make_widgets()
         self.place_widgets()
-
-    def show_results(self):
+       
+    def show_final_point_cloud(self):
         """Shows the stem and radii results.
 
         :return: None
         """
-        self.show_button.state(['disabled'])
-        self.controller.show_results()
+        self.controller.show_final_point_cloud()
 
     def make_widgets(self):
         """Creates the widgets for the frame.
 
         :return: None
         """
-        self.show_button = ttk.Button(self, text="Mostrar resultados", style='b.TButton', 
-                                      command=self.show_results)
-
+        self.show_pcd_button = ttk.Button(self, text="Mostrar nube de puntos", style='m.TButton', 
+                                      command=self.show_final_point_cloud)
+        self.show_results_button = ttk.Button(self, text="Mostrar resultados", style='m.TButton') 
+                                        
+        tree_names = [f"Árbol {i + 1}" for i in range(self.tree_count)]
+        self.tree_dropdown = ttk.Combobox(self, textvariable=self.selected_tree_var, state="readonly", 
+                                          font=('Helvetica', 10))
+        self.tree_dropdown['values'] = tree_names
+        self.tree_dropdown.current(0)
+        
     def place_widgets(self):
         """Places the widgets on the frame.
 
         :return: None
         """ 
-        self.canvas.create_rectangle(200, 100, 600, 300, fill="#32612d", 
+        self.canvas.create_rectangle(200, 50, 600, 220, fill="#32612d", 
                                 outline="", stipple='gray75') 
-        self.canvas.create_text(400, 150, text="Procesamiento terminado", 
+        self.canvas.create_text(400, 80, text="Procesamiento terminado", 
                                 font=self.header_font, fill="white")
-        self.canvas.create_window(400, 200, window=self.show_button)
+        self.canvas.create_window(400, 120, window=self.show_pcd_button)
+
+        self.canvas.create_text(320, 160, text="Seleccione un árbol:", 
+                    font=("Helvetica", 14, "bold"), fill="white")
+        self.canvas.create_window(330, 190, window=self.tree_dropdown)        
+        self.canvas.create_window(500, 190, window=self.show_results_button)
