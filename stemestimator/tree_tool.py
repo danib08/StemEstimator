@@ -26,6 +26,7 @@ class TreeTool:
         self.point_cloud = None
         self.non_ground_cloud = None
         self.ground_cloud = None
+        self.final_stems = []
 
         if point_cloud is not None:
             if isinstance(point_cloud, np.ndarray):
