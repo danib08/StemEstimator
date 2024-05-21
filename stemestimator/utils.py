@@ -241,7 +241,7 @@ def plot_full_cloud(stem_data, point_size=0.1):
     geometries = []
 
     # Visualize stem points and ellipses
-    for stem in stem_data:
+    for idx, stem in enumerate(stem_data):
         # Stem points
         stem_points = stem["stem_points"]
         pcd = open3d.geometry.PointCloud()
@@ -256,6 +256,24 @@ def plot_full_cloud(stem_data, point_size=0.1):
             ellipse_pcd.points = open3d.utility.Vector3dVector(ellipse)
             ellipse_pcd.paint_uniform_color([0.1, 0.1, 0.9])  # Blue color for ellipses
             geometries.append(ellipse_pcd)
+
+        # Add text label
+        label = f"Arbol {idx+1}"
+        # Create text mesh
+        text_mesh_tensor = open3d.t.geometry.TriangleMesh.create_text(label, depth=0.1)
+        text_mesh = text_mesh_tensor.to_legacy()
+
+        # Move the mesh to origin
+        text_mesh.translate(-text_mesh.get_center())
+
+        # Get the centroid of the stem points to position the label
+        centroid = np.mean(stem_points, axis=0)
+        label_position = [centroid[0], centroid[1], 0]
+        # Scale down the text mesh and set its location
+        text_mesh.scale(0.025, center=text_mesh.get_center())
+        text_mesh.translate(label_position) 
+        text_mesh.paint_uniform_color([1, 0, 0])  # Red color for labels
+        geometries.append(text_mesh)
 
     # Visualize all geometries
     visualizer = open3d.visualization.Visualizer()
