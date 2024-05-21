@@ -100,15 +100,17 @@ class PointCloudManager:
         if show:
             utils.open_3d_paint(self.tree_tool.complete_stems, reduce_for_vis=False, voxel_size=0.1)
 
-    def fit_ellipses(self, show=False):
+    def fit_ellipses(self):
         """Fits ellipses to the ground level trees.
 
-        :param show: Whether to show the result in the Open3D viewer.
-        :type show: bool
         :return: None
         """
         self.tree_tool.step_5_fit_ellipses()
+            
+    def show_results(self):
+        """Shows the results of the point cloud processing.
 
-        if show:
-            utils.open_3d_paint([i['stem_points'] for i in self.tree_tool.final_stems] +
-                              self.tree_tool.visualization_ellipses, reduce_for_vis=False, voxel_size=0.1)
+        :return: None
+        """
+        stem_data = self.tree_tool.final_stems
+        utils.visualize_results(stem_data)
