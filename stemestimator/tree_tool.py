@@ -155,11 +155,11 @@ class TreeTool:
 
     def step_5_fit_ellipses(self):
         final_stems = []
-        visualization_ellipses = []
 
-        counter = 0
         for stem_points in self.complete_stems:
-            ellipse_diameters = []
+            ellipse_radii = []
+            ellipse_points = []
+            ellipse_z_coordinates = []
             section_list = utils.get_stem_sections(stem_points, num_sections=30)
 
             for section_points in section_list:
@@ -168,13 +168,14 @@ class TreeTool:
 
                 # Bounding box of the section
                 bounding_box = [np.min(xy_points, axis=0), np.max(xy_points, axis=0)]
-                ellipse = utils.fit_ellipse(xy_points, bounding_box)
+                ellipse, radius = utils.fit_ellipse(xy_points, bounding_box)
+                ellipse_radii.append(radius)
+                ellipse_z_coordinates.append(z_coordinate)
 
-                ellipse_points = utils.generate_ellipse_points(ellipse, z_coordinate)
-                visualization_ellipses.append(ellipse_points)
+                generated_points = utils.generate_ellipse_points(ellipse, z_coordinate)
+                ellipse_points.append(generated_points)
         
-            final_stems.append({"stem_points": stem_points, "ellipse_diameters": ellipse_diameters})
-            counter += 1
+            final_stems.append({"stem_points": stem_points, "ellipse_radii": ellipse_radii, 
+                                "z_coordinates": ellipse_z_coordinates, "ellipse_points": ellipse_points})
     
         self.final_stems = final_stems
-        self.visualization_ellipses = visualization_ellipses
