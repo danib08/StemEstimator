@@ -6,6 +6,7 @@ channels:
   - "davidcaron"
   - "defaults"
 dependencies:
+  - python=3.7
   - pclpy
   - opencv
   - matplotlib
