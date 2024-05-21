@@ -171,8 +171,16 @@ def get_stem_sections(points, num_sections=10):
 
     return sections
 
-#----------------------------------------------------------------------------------------------------
 def fit_ellipse(points, bounding_box):
+    """Fits an ellipse to a set of points and adjusts it to fit within a bounding box.
+
+    :param points: The points to fit the ellipse to.
+    :type points: np.ndarray (n,3)
+    :param bounding_box: The bounding box to adjust the ellipse to.
+    :type bounding_box: tuple
+    :return: The adjusted ellipse and the approximate radius of the ellipse.
+    :rtype: tuple
+    """
     ellipse = cv2.fitEllipse(points)
     (xc, yc), (d1, d2), angle = ellipse
 
@@ -192,6 +200,17 @@ def fit_ellipse(points, bounding_box):
     return adjusted_ellipse, approximate_radius
 
 def generate_ellipse_points(ellipse, z, num_points=50):
+    """Generates points for an ellipse in 3D space.
+
+    :param ellipse: The ellipse to generate points for.
+    :type ellipse: tuple
+    :param z: The z-coordinate of the ellipse.
+    :type z: float
+    :param num_points: The number of points to generate.
+    :type num_points: int
+    :return: The generated points for the ellipse.
+    :rtype: np.ndarray (n,3)
+    """
     (xc, yc), (d1, d2), angle = ellipse
     t = np.linspace(0, 2 * np.pi, num_points)
 
@@ -208,9 +227,9 @@ def generate_ellipse_points(ellipse, z, num_points=50):
     Z = np.full_like(X_rotated, z)
     return np.column_stack((X_rotated, Y_rotated, Z))
 
-def visualize_results(stem_data, point_size=0.1):
+def plot_full_cloud(stem_data, point_size=0.1):
     """
-    Visualizes the stems with their fitted ellipses and radius annotations using Open3D.
+    Visualizes the stems with their fitted ellipses using Open3D.
 
     :param stem_data: List of dictionaries containing stem points, ellipse radii, 
     z coordinates, and ellipse points.
