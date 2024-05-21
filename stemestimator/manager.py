@@ -121,3 +121,12 @@ class PointCloudManager:
         :return: int
         """
         return len(self.tree_tool.final_stems)
+    
+    def get_stem(self, tree_index):
+        """Returns the stem info according to is index.
+
+        :param tree_index: The index of the tree.
+        :type tree_index: int
+        :return: dict
+        """
+        return self.tree_tool.final_stems[tree_index]

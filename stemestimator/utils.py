@@ -250,10 +250,10 @@ def plot_full_cloud(stem_data, point_size=0.1):
         geometries.append(pcd)
 
         # Ellipse points
-        ellipse_points = stem["ellipse_points"]
-        for ellipse in ellipse_points:
+        ellipse_points_list = stem["ellipse_points"]
+        for ellipse_points in ellipse_points_list:
             ellipse_pcd = open3d.geometry.PointCloud()
-            ellipse_pcd.points = open3d.utility.Vector3dVector(ellipse)
+            ellipse_pcd.points = open3d.utility.Vector3dVector(ellipse_points)
             ellipse_pcd.paint_uniform_color([0.1, 0.1, 0.9])  # Blue color for ellipses
             geometries.append(ellipse_pcd)
 
@@ -286,4 +286,4 @@ def plot_full_cloud(stem_data, point_size=0.1):
     options.point_size = point_size
     
     visualizer.run()
-    visualizer.destroy_window()    
+    visualizer.destroy_window()

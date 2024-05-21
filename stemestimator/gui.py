@@ -103,6 +103,15 @@ class App(tk.Tk):
         :return: int
         """
         return self.manager.get_tree_count()
+    
+    def get_tree_info(self, tree_index):
+        """Returns the stem info according to is index.
+
+        :param tree_index: The index of the tree.
+        :type tree_index: int
+        :return: dict
+        """
+        return self.manager.get_stem(tree_index)
 
 if __name__ == "__main__":
     width, height = 800, 600

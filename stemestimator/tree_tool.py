@@ -161,7 +161,7 @@ class TreeTool:
             ellipse_radii = []
             ellipse_points = []
             ellipse_z_coordinates = []
-            section_list = utils.get_stem_sections(stem_points, num_sections=30)
+            section_list = utils.get_stem_sections(stem_points, num_sections=20)
 
             for section_points in section_list:
                 z_coordinate = np.mean(section_points[:, 2])

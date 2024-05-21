@@ -1,5 +1,8 @@
+import numpy as np
 import tkinter as tk
 from tkinter import ttk
+import matplotlib.pyplot as plt
+from matplotlib.widgets import Cursor
 from tkinter import filedialog, messagebox
 
 class BasePage(tk.Frame):
@@ -216,21 +219,56 @@ class ResultsPage(BasePage):
         """
         self.controller.show_final_point_cloud()
 
+    def show_tree_results(self):
+        """Plot the selected tree and its ellipses using Matplotlib.
+
+        :return: None
+        """
+        selected_tree = self.selected_tree_var.get()
+        tree_index = int(selected_tree.replace('Árbol', '')) - 1
+        stem_data = self.controller.get_tree_info(tree_index)
+        stem_points = stem_data["stem_points"]
+        ellipse_radii = stem_data["ellipse_radii"]
+        ellipse_points_list = stem_data["ellipse_points"]
+
+        fig, ax = plt.subplots(subplot_kw={'projection': '3d'})
+
+        # Plot the stem points
+        ax.scatter(stem_points[:, 0], stem_points[:, 1], stem_points[:, 2], c='g', label='Stem Points')
+
+        # Plot the ellipse points
+        ellipse_points = []
+        for points in ellipse_points_list:
+            ax.plot(points[:, 0], points[:, 1], points[:, 2], 'r-')
+            ellipse_points.extend(points)
+
+        ellipse_points = np.array(ellipse_points)
+
+        # Set labels
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        tree_num = tree_index + 1
+        ax.set_title(f"Árbol {tree_num} con sus elipses")
+
+        plt.show()
+
     def make_widgets(self):
         """Creates the widgets for the frame.
 
         :return: None
         """
-        self.show_pcd_button = ttk.Button(self, text="Mostrar nube de puntos", style='m.TButton', 
-                                      command=self.show_final_point_cloud)
-        self.show_results_button = ttk.Button(self, text="Mostrar resultados", style='m.TButton') 
+        self.show_pcd_button = ttk.Button(self, text="Mostrar nube de puntos", style='m.TButton',
+                                        command=self.show_final_point_cloud)
+        self.show_results_button = ttk.Button(self, text="Mostrar resultados", style='m.TButton', 
+                                        command=self.show_tree_results) 
                                         
         tree_names = [f"Árbol {i + 1}" for i in range(self.tree_count)]
         self.tree_dropdown = ttk.Combobox(self, textvariable=self.selected_tree_var, state="readonly", 
                                           font=('Helvetica', 10))
         self.tree_dropdown['values'] = tree_names
         self.tree_dropdown.current(0)
-        
+
     def place_widgets(self):
         """Places the widgets on the frame.
 
