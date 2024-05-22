@@ -288,7 +288,7 @@ class ResultsPage(BasePage):
                                         
         tree_names = [f"Árbol {i + 1}" for i in range(self.tree_count)]
         self.tree_dropdown = ttk.Combobox(self, textvariable=self.selected_tree_var, state="readonly", 
-                                          font=('Helvetica', 10))
+                          font=('Helvetica', 12))
         self.tree_dropdown['values'] = tree_names
         self.tree_dropdown.current(0)
 
@@ -297,13 +297,13 @@ class ResultsPage(BasePage):
 
         :return: None
         """ 
-        self.canvas.create_rectangle(200, 50, 600, 220, fill="#32612d", 
+        self.canvas.create_rectangle(200, 100, 600, 400, fill="#32612d", 
                                 outline="", stipple='gray75') 
-        self.canvas.create_text(400, 80, text="Procesamiento terminado", 
+        self.canvas.create_text(400, 150, text="Procesamiento terminado", 
                                 font=self.header_font, fill="white")
-        self.canvas.create_window(400, 120, window=self.show_pcd_button)
+        self.canvas.create_window(400, 190, window=self.show_pcd_button)
 
-        self.canvas.create_text(320, 160, text="Seleccione un árbol:", 
+        self.canvas.create_text(310, 250, text="Seleccione un árbol:", 
                     font=("Helvetica", 14, "bold"), fill="white")
-        self.canvas.create_window(330, 190, window=self.tree_dropdown)        
-        self.canvas.create_window(500, 190, window=self.show_results_button)
+        self.canvas.create_window(320, 280, window=self.tree_dropdown)        
+        self.canvas.create_window(510, 280, window=self.show_results_button)
