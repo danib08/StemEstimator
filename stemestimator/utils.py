@@ -171,8 +171,16 @@ def get_stem_sections(points, num_sections=10):
 
     return sections
 
-#----------------------------------------------------------------------------------------------------
 def fit_ellipse(points, bounding_box):
+    """Fits an ellipse to a set of points and adjusts it to fit within a bounding box.
+
+    :param points: The points to fit the ellipse to.
+    :type points: np.ndarray (n,3)
+    :param bounding_box: The bounding box to adjust the ellipse to.
+    :type bounding_box: tuple
+    :return: The adjusted ellipse and the approximate radius of the ellipse.
+    :rtype: tuple
+    """
     ellipse = cv2.fitEllipse(points)
     (xc, yc), (d1, d2), angle = ellipse
 
@@ -192,6 +200,17 @@ def fit_ellipse(points, bounding_box):
     return adjusted_ellipse, approximate_radius
 
 def generate_ellipse_points(ellipse, z, num_points=50):
+    """Generates points for an ellipse in 3D space.
+
+    :param ellipse: The ellipse to generate points for.
+    :type ellipse: tuple
+    :param z: The z-coordinate of the ellipse.
+    :type z: float
+    :param num_points: The number of points to generate.
+    :type num_points: int
+    :return: The generated points for the ellipse.
+    :rtype: np.ndarray (n,3)
+    """
     (xc, yc), (d1, d2), angle = ellipse
     t = np.linspace(0, 2 * np.pi, num_points)
 
@@ -208,9 +227,9 @@ def generate_ellipse_points(ellipse, z, num_points=50):
     Z = np.full_like(X_rotated, z)
     return np.column_stack((X_rotated, Y_rotated, Z))
 
-def visualize_results(stem_data, point_size=0.1):
+def plot_full_cloud(stem_data, point_size=0.1):
     """
-    Visualizes the stems with their fitted ellipses and radius annotations using Open3D.
+    Visualizes the stems with their fitted ellipses using Open3D.
 
     :param stem_data: List of dictionaries containing stem points, ellipse radii, 
     z coordinates, and ellipse points.
@@ -222,7 +241,7 @@ def visualize_results(stem_data, point_size=0.1):
     geometries = []
 
     # Visualize stem points and ellipses
-    for stem in stem_data:
+    for idx, stem in enumerate(stem_data):
         # Stem points
         stem_points = stem["stem_points"]
         pcd = open3d.geometry.PointCloud()
@@ -231,12 +250,30 @@ def visualize_results(stem_data, point_size=0.1):
         geometries.append(pcd)
 
         # Ellipse points
-        ellipse_points = stem["ellipse_points"]
-        for ellipse in ellipse_points:
+        ellipse_points_list = stem["ellipse_points"]
+        for ellipse_points in ellipse_points_list:
             ellipse_pcd = open3d.geometry.PointCloud()
-            ellipse_pcd.points = open3d.utility.Vector3dVector(ellipse)
+            ellipse_pcd.points = open3d.utility.Vector3dVector(ellipse_points)
             ellipse_pcd.paint_uniform_color([0.1, 0.1, 0.9])  # Blue color for ellipses
             geometries.append(ellipse_pcd)
+
+        # Add text label
+        label = f"Arbol {idx+1}"
+        # Create text mesh
+        text_mesh_tensor = open3d.t.geometry.TriangleMesh.create_text(label, depth=0.1)
+        text_mesh = text_mesh_tensor.to_legacy()
+
+        # Move the mesh to origin
+        text_mesh.translate(-text_mesh.get_center())
+
+        # Get the centroid of the stem points to position the label
+        centroid = np.mean(stem_points, axis=0)
+        label_position = [centroid[0], centroid[1], 0]
+        # Scale down the text mesh and set its location
+        text_mesh.scale(0.025, center=text_mesh.get_center())
+        text_mesh.translate(label_position) 
+        text_mesh.paint_uniform_color([1, 0, 0])  # Red color for labels
+        geometries.append(text_mesh)
 
     # Visualize all geometries
     visualizer = open3d.visualization.Visualizer()
@@ -249,4 +286,4 @@ def visualize_results(stem_data, point_size=0.1):
     options.point_size = point_size
     
     visualizer.run()
-    visualizer.destroy_window()    
+    visualizer.destroy_window()

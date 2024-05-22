@@ -1,7 +1,7 @@
 import threading
 import tkinter as tk
 from manager import PointCloudManager
-from pages import StartPage, ProcessingPage
+from pages import StartPage, ProcessingPage, ResultsPage
 
 class App(tk.Tk):
     """Main application class, represents the main window.
@@ -43,7 +43,7 @@ class App(tk.Tk):
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
 
-        for F in (StartPage, ProcessingPage):
+        for F in (StartPage, ProcessingPage, ResultsPage):
             page_name = F.__name__
             frame = F(parent=container, controller=self, width=self.width, height=self.height)
             # Add each frame to dictionary
@@ -60,6 +60,8 @@ class App(tk.Tk):
         :return: None
         """
         frame = self.frames[page_name]
+        if page_name == "ResultsPage":
+            frame.create()
         frame.tkraise()
 
     def start_processing(self, file_path):
@@ -81,11 +83,35 @@ class App(tk.Tk):
         """
         self.show_frame("ProcessingPage")
         self.manager = PointCloudManager(file_path)
-        self.manager.remove_ground(show=False)
-        self.manager.normal_filtering(show=False)
-        self.manager.clustering(show=False)
-        self.manager.group_stems(show=True)
-        self.manager.fit_ellipses(show=True)
+        self.manager.remove_ground()
+        self.manager.normal_filtering()
+        self.manager.clustering()
+        self.manager.group_stems()
+        self.manager.fit_ellipses()
+        self.show_frame("ResultsPage")
+
+    def show_final_point_cloud(self):
+        """Shows the results of the point cloud processing.
+
+        :return: None
+        """
+        self.manager.show_final_point_cloud()
+
+    def get_tree_count(self):
+        """Returns the number of trees in the point cloud.
+
+        :return: int
+        """
+        return self.manager.get_tree_count()
+    
+    def get_tree_info(self, tree_index):
+        """Returns the stem info according to is index.
+
+        :param tree_index: The index of the tree.
+        :type tree_index: int
+        :return: dict
+        """
+        return self.manager.get_stem(tree_index)
 
 if __name__ == "__main__":
     width, height = 800, 600

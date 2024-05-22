@@ -1,9 +1,7 @@
-import cv2
 import pclpy
 import utils
 import seg_tree
 import numpy as np
-from ellipse import LsqEllipse
 
 class TreeTool:
     """
@@ -26,6 +24,7 @@ class TreeTool:
         self.point_cloud = None
         self.non_ground_cloud = None
         self.ground_cloud = None
+        self.final_stems = []
 
         if point_cloud is not None:
             if isinstance(point_cloud, np.ndarray):
@@ -154,13 +153,17 @@ class TreeTool:
         self.complete_stems = temp_stems
 
     def step_5_fit_ellipses(self):
+        """Fits ellipses to the stems and stores the results in the final_stems attribute.
+
+        :return: None
+        """
         final_stems = []
 
         for stem_points in self.complete_stems:
             ellipse_radii = []
             ellipse_points = []
             ellipse_z_coordinates = []
-            section_list = utils.get_stem_sections(stem_points, num_sections=30)
+            section_list = utils.get_stem_sections(stem_points, num_sections=20)
 
             for section_points in section_list:
                 z_coordinate = np.mean(section_points[:, 2])

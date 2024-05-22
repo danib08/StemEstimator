@@ -1,5 +1,7 @@
+import numpy as np
 import tkinter as tk
 from tkinter import ttk
+import plotly.graph_objs as go
 from tkinter import filedialog, messagebox
 
 class BasePage(tk.Frame):
@@ -29,6 +31,7 @@ class BasePage(tk.Frame):
 
         self.style = ttk.Style()
         self.style.configure('s.TButton', font=('Helvetica', 10, "bold"), foreground="green")
+        self.style.configure('m.TButton', font=('Helvetica', 12, "bold"), foreground="green")
         self.style.configure('b.TButton', font=('Helvetica', 16, "bold"), foreground="green")
         self.set_background()
 
@@ -176,7 +179,131 @@ class ProcessingPage(BasePage):
 
         :return: None
         """ 
+        self.canvas.create_rectangle(200, 100, 600, 300, fill="#32612d", 
+                                outline="", stipple='gray75') 
+        self.canvas.create_text(400, 180, text="Procesando nube de puntos...", 
+                                font=self.header_font, fill="white")
+        
+class ResultsPage(BasePage):
+    """The results page for the application.
+    :param parent: The parent widget.
+    :type parent: tk.Tk
+    :param controller: The main application controller.
+    :type controller: :class:`gui.App`
+    :param width: The width of the page in pixels.
+    :type width: int
+    :param height: The height of the page in pixels.
+    :type height: int
+    """
+    def __init__(self, parent, controller, width, height):
+        """Constructor method. Sets the controller and creates the widgets.
+        """
+        super().__init__(parent, controller, width, height)
+        
+    def create(self):
+        """Gets tree count, creates and places widgets.
+        Called after all of the trees have been processed.
+
+        :return: None
+        """
+        self.selected_tree_var = tk.StringVar(self)
+        self.tree_count = self.controller.get_tree_count()
+        self.make_widgets()
+        self.place_widgets()
+       
+    def show_final_point_cloud(self):
+        """Shows the stem and radii results.
+
+        :return: None
+        """
+        self.controller.show_final_point_cloud()
+
+    def show_tree_results(self):
+        """Plot the selected tree and its ellipses using Matplotlib.
+
+        :return: None
+        """
+        selected_tree = self.selected_tree_var.get()
+        tree_index = int(selected_tree.replace('Árbol', '')) - 1
+        stem_data = self.controller.get_tree_info(tree_index)
+        stem_points = stem_data["stem_points"]
+        ellipse_radii = stem_data["ellipse_radii"]
+        ellipse_points_list = stem_data["ellipse_points"]
+
+        fig = go.Figure()
+
+        # Plot the stem points
+        fig.add_trace(go.Scatter3d(
+            x=stem_points[:, 0],
+            y=stem_points[:, 1],
+            z=stem_points[:, 2],
+            mode='markers',
+            marker=dict(
+                size=5,
+                color='green',
+                opacity=0.8
+            ),
+            name='Tallo'
+        ))
+
+        # Add hover text for stem points
+        stem_hover_text = [f"Point {i}: ({x:.2f}, {y:.2f}, {z:.2f})" for i, (x, y, z) in enumerate(stem_points)]
+        fig.data[0].hovertext = stem_hover_text
+
+        # Plot the ellipse points
+        for i, points in enumerate(ellipse_points_list):
+            radius = ellipse_radii[i]
+            fig.add_trace(go.Scatter3d(
+                x=points[:, 0],
+                y=points[:, 1],
+                z=points[:, 2],
+                mode='lines',
+                line=dict(color='red', width=2),
+                name=f'Elipse {i+1}',
+                hovertext=[f"Radio: {radius}" for _ in range(len(points))]
+            ))
+
+        # Set layout
+        fig.update_layout(
+            title=f"Árbol {tree_index + 1} con sus elipses",
+            scene=dict(
+                xaxis_title='X',
+                yaxis_title='Y',
+                zaxis_title='Z',
+            ),
+        )
+
+        # Show plot
+        fig.show()
+
+    def make_widgets(self):
+        """Creates the widgets for the frame.
+
+        :return: None
+        """
+        self.show_pcd_button = ttk.Button(self, text="Mostrar nube de puntos", style='m.TButton',
+                                        command=self.show_final_point_cloud)
+        self.show_results_button = ttk.Button(self, text="Mostrar resultados", style='m.TButton', 
+                                        command=self.show_tree_results) 
+                                        
+        tree_names = [f"Árbol {i + 1}" for i in range(self.tree_count)]
+        self.tree_dropdown = ttk.Combobox(self, textvariable=self.selected_tree_var, state="readonly", 
+                          font=('Helvetica', 12))
+        self.tree_dropdown['values'] = tree_names
+        self.tree_dropdown.current(0)
+
+    def place_widgets(self):
+        """Places the widgets on the frame.
+
+        :return: None
+        """ 
         self.canvas.create_rectangle(200, 100, 600, 400, fill="#32612d", 
                                 outline="", stipple='gray75') 
-        self.canvas.create_text(400, 130, text="Procesando nube de puntos...", 
+        self.canvas.create_text(400, 150, text="Procesamiento terminado", 
                                 font=self.header_font, fill="white")
+        self.canvas.create_window(400, 190, window=self.show_pcd_button)
+
+        self.canvas.create_text(310, 250, text="Seleccione un árbol:", 
+                    font=("Helvetica", 14, "bold"), fill="white")
+        self.canvas.create_window(320, 280, window=self.tree_dropdown)        
+        self.canvas.create_window(510, 280, window=self.show_results_button)
