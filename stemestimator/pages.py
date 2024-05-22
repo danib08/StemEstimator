@@ -1,8 +1,7 @@
 import numpy as np
 import tkinter as tk
 from tkinter import ttk
-import matplotlib.pyplot as plt
-from matplotlib.widgets import Cursor
+import plotly.graph_objs as go
 from tkinter import filedialog, messagebox
 
 class BasePage(tk.Frame):
@@ -231,27 +230,51 @@ class ResultsPage(BasePage):
         ellipse_radii = stem_data["ellipse_radii"]
         ellipse_points_list = stem_data["ellipse_points"]
 
-        fig, ax = plt.subplots(subplot_kw={'projection': '3d'})
+        fig = go.Figure()
 
         # Plot the stem points
-        ax.scatter(stem_points[:, 0], stem_points[:, 1], stem_points[:, 2], c='g', label='Stem Points')
+        fig.add_trace(go.Scatter3d(
+            x=stem_points[:, 0],
+            y=stem_points[:, 1],
+            z=stem_points[:, 2],
+            mode='markers',
+            marker=dict(
+                size=5,
+                color='green',
+                opacity=0.8
+            ),
+            name='Tallo'
+        ))
+
+        # Add hover text for stem points
+        stem_hover_text = [f"Point {i}: ({x:.2f}, {y:.2f}, {z:.2f})" for i, (x, y, z) in enumerate(stem_points)]
+        fig.data[0].hovertext = stem_hover_text
 
         # Plot the ellipse points
-        ellipse_points = []
-        for points in ellipse_points_list:
-            ax.plot(points[:, 0], points[:, 1], points[:, 2], 'r-')
-            ellipse_points.extend(points)
+        for i, points in enumerate(ellipse_points_list):
+            radius = ellipse_radii[i]
+            fig.add_trace(go.Scatter3d(
+                x=points[:, 0],
+                y=points[:, 1],
+                z=points[:, 2],
+                mode='lines',
+                line=dict(color='red', width=2),
+                name=f'Elipse {i+1}',
+                hovertext=[f"Radio: {radius}" for _ in range(len(points))]
+            ))
 
-        ellipse_points = np.array(ellipse_points)
+        # Set layout
+        fig.update_layout(
+            title=f"Árbol {tree_index + 1} con sus elipses",
+            scene=dict(
+                xaxis_title='X',
+                yaxis_title='Y',
+                zaxis_title='Z',
+            ),
+        )
 
-        # Set labels
-        ax.set_xlabel('X')
-        ax.set_ylabel('Y')
-        ax.set_zlabel('Z')
-        tree_num = tree_index + 1
-        ax.set_title(f"Árbol {tree_num} con sus elipses")
-
-        plt.show()
+        # Show plot
+        fig.show()
 
     def make_widgets(self):
         """Creates the widgets for the frame.
