@@ -1,9 +1,7 @@
-import cv2
 import pclpy
 import utils
 import seg_tree
 import numpy as np
-from ellipse import LsqEllipse
 
 class TreeTool:
     """
@@ -155,6 +153,10 @@ class TreeTool:
         self.complete_stems = temp_stems
 
     def step_5_fit_ellipses(self):
+        """Fits ellipses to the stems and stores the results in the final_stems attribute.
+
+        :return: None
+        """
         final_stems = []
 
         for stem_points in self.complete_stems:
