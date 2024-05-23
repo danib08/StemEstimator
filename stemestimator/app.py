@@ -100,14 +100,14 @@ class App(tk.Tk):
         """
         return self.manager.get_tree_count()
     
-    def get_tree_info(self, tree_index):
-        """Returns the stem info according to is index.
+    def show_tree_results(self, tree_index):
+        """Plot the selected tree and its ellipses using Plotly.
 
         :param tree_index: The index of the tree.
         :type tree_index: int
         :return: dict
         """
-        return self.manager.get_stem(tree_index)
+        self.manager.show_tree_results(tree_index)
 
 if __name__ == "__main__":
     width, height = 800, 600

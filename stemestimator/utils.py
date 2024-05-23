@@ -4,6 +4,7 @@ import open3d
 import seg_tree
 import numpy as np
 from matplotlib import cm
+import plotly.graph_objs as go
 
 def open_3d_paint(nppoints, color_map='viridis', reduce_for_vis=False, voxel_size=0.1, point_size=0.1):
     """
@@ -287,3 +288,63 @@ def plot_full_cloud(stem_data, point_size=0.1):
     
     visualizer.run()
     visualizer.destroy_window()
+
+def plot_tree(stem_data, tree_index):
+    """
+    Plots the tree with its fitted ellipses using Plotly.
+
+    :param stem_data: Dictionary containing stem points, ellipse radii, and ellipse points.
+    :type: dict
+    :param tree_index: The index of the tree.
+    :type tree_index: int
+    :return: None
+    """
+    stem_points = stem_data["stem_points"]
+    ellipse_radii = stem_data["ellipse_radii"]
+    ellipse_points_list = stem_data["ellipse_points"]
+
+    fig = go.Figure()
+
+    # Plot the stem points
+    fig.add_trace(go.Scatter3d(
+        x=stem_points[:, 0],
+        y=stem_points[:, 1],
+        z=stem_points[:, 2],
+        mode='markers',
+        marker=dict(
+            size=5,
+            color='green',
+            opacity=0.8
+        ),
+            name='Tallo'
+    ))
+
+    # Add hover text for stem points
+    stem_hover_text = [f"Point {i}: ({x:.2f}, {y:.2f}, {z:.2f})" for i, (x, y, z) in enumerate(stem_points)]
+    fig.data[0].hovertext = stem_hover_text
+
+    # Plot the ellipse points
+    for i, points in enumerate(ellipse_points_list):
+        radius = ellipse_radii[i]
+        fig.add_trace(go.Scatter3d(
+            x=points[:, 0],
+            y=points[:, 1],
+            z=points[:, 2],
+            mode='lines',
+            line=dict(color='red', width=2),
+            name=f'Elipse {i+1}',
+            hovertext=[f"Radio: {radius}" for _ in range(len(points))]
+            ))
+
+    # Set layout
+    fig.update_layout(
+        title=f"Árbol {tree_index + 1} con sus elipses",
+        scene=dict(
+            xaxis_title='X',
+            yaxis_title='Y',
+            zaxis_title='Z',
+        ),
+    )
+
+    # Show plot
+    fig.show()

@@ -1,7 +1,6 @@
 import numpy as np
 import tkinter as tk
 from tkinter import ttk
-import plotly.graph_objs as go
 from tkinter import filedialog, messagebox
 
 class BasePage(tk.Frame):
@@ -219,62 +218,13 @@ class ResultsPage(BasePage):
         self.controller.show_final_point_cloud()
 
     def show_tree_results(self):
-        """Plot the selected tree and its ellipses using Matplotlib.
+        """Plot the selected tree and its ellipses using Plotly.
 
         :return: None
         """
         selected_tree = self.selected_tree_var.get()
         tree_index = int(selected_tree.replace('Árbol', '')) - 1
-        stem_data = self.controller.get_tree_info(tree_index)
-        stem_points = stem_data["stem_points"]
-        ellipse_radii = stem_data["ellipse_radii"]
-        ellipse_points_list = stem_data["ellipse_points"]
-
-        fig = go.Figure()
-
-        # Plot the stem points
-        fig.add_trace(go.Scatter3d(
-            x=stem_points[:, 0],
-            y=stem_points[:, 1],
-            z=stem_points[:, 2],
-            mode='markers',
-            marker=dict(
-                size=5,
-                color='green',
-                opacity=0.8
-            ),
-            name='Tallo'
-        ))
-
-        # Add hover text for stem points
-        stem_hover_text = [f"Point {i}: ({x:.2f}, {y:.2f}, {z:.2f})" for i, (x, y, z) in enumerate(stem_points)]
-        fig.data[0].hovertext = stem_hover_text
-
-        # Plot the ellipse points
-        for i, points in enumerate(ellipse_points_list):
-            radius = ellipse_radii[i]
-            fig.add_trace(go.Scatter3d(
-                x=points[:, 0],
-                y=points[:, 1],
-                z=points[:, 2],
-                mode='lines',
-                line=dict(color='red', width=2),
-                name=f'Elipse {i+1}',
-                hovertext=[f"Radio: {radius}" for _ in range(len(points))]
-            ))
-
-        # Set layout
-        fig.update_layout(
-            title=f"Árbol {tree_index + 1} con sus elipses",
-            scene=dict(
-                xaxis_title='X',
-                yaxis_title='Y',
-                zaxis_title='Z',
-            ),
-        )
-
-        # Show plot
-        fig.show()
+        self.controller.show_tree_results(tree_index)
 
     def make_widgets(self):
         """Creates the widgets for the frame.

@@ -133,11 +133,10 @@ class PointCloudManager:
         """
         return len(self.tree_tool.final_stems)
     
-    def get_stem(self, tree_index):
-        """Returns the stem info according to is index.
+    def show_tree_results(self, tree_index):
+        """Plot the selected tree and its ellipses using Plotly.
 
-        :param tree_index: The index of the tree.
-        :type tree_index: int
-        :return: dict
+        :return: None
         """
-        return self.tree_tool.final_stems[tree_index]
+        stem_data = self.tree_tool.final_stems[tree_index]
+        utils.plot_tree(stem_data, tree_index)
