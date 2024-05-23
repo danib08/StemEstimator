@@ -106,6 +106,17 @@ class PointCloudManager:
         :return: None
         """
         self.tree_tool.step_5_fit_ellipses()
+
+    def full_processing(self):
+        """Runs the full processing of the point cloud.
+
+        :return: None
+        """
+        self.remove_ground()
+        self.normal_filtering()
+        self.clustering()
+        self.group_stems()
+        self.fit_ellipses()
             
     def show_final_point_cloud(self):
         """Shows the final point cloud with the stems and ellipses with Open3D.

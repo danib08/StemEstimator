@@ -83,11 +83,7 @@ class App(tk.Tk):
         """
         self.show_frame("ProcessingPage")
         self.manager = PointCloudManager(file_path)
-        self.manager.remove_ground()
-        self.manager.normal_filtering()
-        self.manager.clustering()
-        self.manager.group_stems()
-        self.manager.fit_ellipses()
+        self.manager.full_processing()
         self.show_frame("ResultsPage")
 
     def show_final_point_cloud(self):
