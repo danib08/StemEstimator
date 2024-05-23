@@ -15,7 +15,7 @@ Open3D is not distributed through Anaconda and needs to be installed through `pi
 Run `conda install pip` and then `pip install -r requirements.txt`
 
 ## Usage
-Run `gui.py` and upload a point cloud file. Currently only `.pcd` and `.xyz` files are supported. The latter requires the x-y-z values to be on columns 2-3-4 respectively.
+Run `app.py` and upload a point cloud file. Currently only `.pcd` and `.xyz` files are supported. The latter requires the x-y-z values to be on columns 2-3-4 respectively.
 
 When the processing is done, the stems and their ellipses can be visualized as a whole, or a specific tree may be selected in order to show the radius results.
 
