@@ -8,11 +8,11 @@ The trees are segmented and filtered from the rest of the point cloud, and then 
 ## Installation
 Anaconda is highly recommended in order to install `pclpy`.
 
-Run `conda env create -f environment.yml`
+Run `conda env create -f environment.yml` and then `conda activate stemestimator`. 
 
 Open3D is not distributed through Anaconda and needs to be installed through `pip`:
 
-Run `pip install -r requirements.txt`
+Run `conda install pip` and then `pip install -r requirements.txt`
 
 ## Usage
 Run `gui.py` and upload a point cloud file. Currently only `.pcd` and `.xyz` files are supported. The latter requires the x-y-z values to be on columns 2-3-4 respectively.
