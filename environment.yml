@@ -1,8 +1,10 @@
-# to install, run: 
-# conda env create -f environment.yml
 name: stemestimator
 channels:
   - "conda-forge"
   - "davidcaron"
+  - "defaults"
 dependencies:
+  - python=3.7
   - pclpy
+  - opencv
+  - matplotlib
