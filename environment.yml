@@ -1,0 +1,10 @@
+name: stemestimator
+channels:
+  - "conda-forge"
+  - "davidcaron"
+  - "defaults"
+dependencies:
+  - python=3.7
+  - pclpy
+  - opencv
+  - matplotlib
